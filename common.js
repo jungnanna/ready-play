@@ -7,8 +7,8 @@
 
 // --- [1] Supabase 설정 ---
 // 모든 페이지에서 같은 URL과 KEY를 사용 (login.html 기준)
-const RP_SUPABASE_URL = 'https://qdcysdousmdfucuvdcgt.supabase.co';
-const RP_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFkY3lzZG91c21kZnVjdXZkY2d0Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM4Njg3OTksImV4cCI6MjA4OTQ0NDc5OX0.rHdhb-VsNR7hs08-sY0lLybFDDNu1rvZw2GS6wpeu3I';
+const RP_SUPABASE_URL = 'https://hbyhlrodarhkpftybmuw.supabase.co';
+const RP_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhieWhscm9kYXJoa3BmdHlibXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MTMwODcsImV4cCI6MjA5OTA4OTA4N30.V2FRW5jWc6jRp_GvekNiYXkB7bjcMPy7qEMePSTx2qI';
 
 // Supabase 클라이언트 싱글톤 (한 번만 초기화해서 재사용)
 // 사용법: const sb = getSupabase();
