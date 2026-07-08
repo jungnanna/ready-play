@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Readyplay - About Us</title>
+    <link rel="stylesheet" href="common.css">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap');
+
+        /* [수정 1] 전체 선택자(*)에서 폰트와 박스사이징을 빼서 헤더/푸터 스타일을 보존합니다. */
+        * { margin: 0; padding: 0; }
+        
+        body {
+            background-color: #ffffff;
+            color: #000;
+            line-height: 1.6;
+            /* padding-top은 common.css에서 통일 */
+            margin: 0;
+        }
+
+        /* [수정 2] about 페이지 본문 영역에만 폰트와 박스사이징을 제한적으로 적용합니다. */
+        .main-container, .main-container * {
+            box-sizing: border-box;
+        }
+
+        .main-container { 
+            font-family: 'Malgun Gothic', sans-serif;
+            width: 100%; 
+            max-width: 1200px; 
+            margin: 0 auto; 
+            padding: 20px; 
+        }
+
+        /* [B&W 레트로 테마 핵심 클래스] */
+        .retro-border { 
+            border: 4px solid #000; 
+            box-shadow: 6px 6px 0px #000; 
+        }
+        
+        .btn-retro { 
+            font-family: 'Black Han Sans', sans-serif; cursor: pointer; border: 3px solid #000; 
+            padding: 12px 30px; box-shadow: 4px 4px 0px #000; transition: 0.1s; 
+            text-decoration: none; display: inline-block; 
+            color: #fff; 
+            background: #000;
+            font-size: 1.2rem;
+        }
+        .btn-retro:hover { background: #333; }
+        .btn-retro:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #000; }
+
+        /* [타이틀 영역] */
+        .title-section { 
+            font-family: 'Black Han Sans', sans-serif; 
+            font-size: 3rem; 
+            color: #000; 
+            margin-bottom: 30px; 
+            border-bottom: 8px solid #000;
+            display: inline-block;
+        }
+
+        /* [히어로 배너] */
+        .hero-banner {
+            padding: 0; 
+            overflow: hidden; 
+            margin-bottom: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .banner-img {
+            width: 100%; 
+            height: auto; 
+            display: block;
+        }
+
+        /* [그리드 컨테이너 시스템] */
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 25px;
+            margin-bottom: 40px;
+        }
+
+        .grid-box {
+            padding: 35px 20px;
+            display: flex;
+            flex-direction: column; 
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            background-color: #fff;
+            transition: 0.2s;
+        }
+        
+        .grid-box:hover {
+            transform: translateY(-5px);
+        }
+
+        /* 질문 태그 스타일 */
+        .q-tag {
+            background-color: #000;
+            color: #fff;
+            font-size: 0.9rem;
+            padding: 4px 12px;
+            margin-bottom: 15px;
+            font-weight: bold;
+            display: inline-block;
+        }
+
+        /* 해결책 텍스트 스타일 */
+        .a-text {
+            font-family: 'Black Han Sans', sans-serif;
+            font-size: 1.4rem;
+            color: #000;
+            line-height: 1.3;
+            word-break: keep-all; 
+        }
+
+        /* [히스토리 이미지 영역] */
+        .history-image-area {
+            grid-column: span 2; 
+            background-color: #fff;
+            overflow: hidden; 
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 10px; 
+        }
+
+        .full-img {
+            width: 100%;      
+            height: auto;     
+            display: block;   
+        }
+
+        /* 개별 박스 배경색 리듬감 */
+        .box-start, .box-habit { background-color: #fff; }
+        .box-joy, .box-health { background-color: #f2f2f2; }
+        
+        /* 하단 배너 */
+        .bottom-banner {
+            grid-column: span 2; 
+            background-color: #ffffff;
+            padding: 50px;
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+        }
+        .bottom-banner .btn-retro {
+            background: #d61717;
+            color: #ffffff;
+            border-color: #000000;
+            box-shadow: 6px 6px 0px #555;
+        }
+
+        /* 모바일 대응 */
+        @media (max-width: 600px) {
+            .grid-container {
+                grid-template-columns: 1fr;
+            }
+            .history-image-area, .bottom-banner {
+                grid-column: span 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<div class="main-container">
+    
+    <h2 class="title-section">ABOUT US</h2>
+
+    <div class="hero-banner retro-border">
+        <img src="about.png" alt="Readyplay Banner" class="banner-img">
+    </div>
+
+    <div class="grid-container">
+        <div class="history-image-area retro-border">
+            <img src="history.png" alt="Readyplay History" class="full-img">
+        </div>
+        
+        <div class="grid-box retro-border box-start">
+            <span class="q-tag">뭘 사야할 지 막막할 때?</span>
+            <span class="a-text">전문가가 엄선한<br>필수 아이템 모아모아</span>
+        </div>
+
+        <div class="grid-box retro-border box-joy">
+            <span class="q-tag">제품 퀄리티가 걱정될 때?</span>
+            <span class="a-text">수많은 샘플링을 거친<br>증명된 제품만 선별</span>
+        </div>
+
+        <div class="grid-box retro-border box-health">
+            <span class="q-tag">따로 사기 번거로울 때?</span>
+            <span class="a-text">배송비는 줄이고<br>박스 하나로 한 번에 해결</span>
+        </div>
+
+        <div class="grid-box retro-border box-habit">
+            <span class="q-tag">당장 시작하고 싶을 때?</span>
+            <span class="a-text">고민은 배송만 늦출 뿐<br>오늘 주문 시 오늘 출발</span>
+        </div>
+        
+        <div class="grid-box retro-border bottom-banner">
+             <a href="store.html" class="btn-retro">스타터 키트 제품보기 →</a>
+        </div>
+    </div>
+
+</div>
+
+<div id="footer-container"></div>
+
+<script>
+    // loadLayout()은 common.js에 정의 — 헤더+푸터 로드 후 updateLoginStatus() 자동 호출
+    document.addEventListener('DOMContentLoaded', loadLayout);
+</script>
+
+</body>
+</html>

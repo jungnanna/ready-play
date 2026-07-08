@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>READY PLAY! - Core Content</title>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        /* --- [1] ROOT & RESET --- */
+        :root {
+            --bg-color: #E6E6E6;
+            --point-color: #000;
+            --sub-border: 2px;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            /* padding-top은 common.css에서 var(--header-h)로 통일 */
+            background-color: var(--bg-color);
+        }
+
+        .wrapper {
+            width: 100%; 
+            margin: 0 auto; 
+            background: #fff;
+            margin-top: 0; 
+            border-left: var(--sub-border) solid #000; 
+            border-right: var(--sub-border) solid #000;
+            max-width: 100%;
+        }
+
+        .section-header { 
+            display: flex; 
+            border-top: var(--sub-border) solid #000; 
+            border-bottom: var(--sub-border) solid #000; 
+            background: #fff; 
+            margin-top: -var(--sub-border); 
+        }
+        .header-title { 
+            padding: 15px 20px; 
+            font-weight: 800; 
+            font-size: clamp(1.5rem, 5vw, 3rem); 
+            text-transform: uppercase; 
+        }
+
+        /* ── 메인 배너 영상 ── */
+        .banner-section {
+            height: 1200px;
+            overflow: hidden;
+            position: relative;
+            background: #000;
+            border-bottom: var(--sub-border) solid #000;
+            cursor: pointer;
+        }
+
+        .banner-video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: filter 0.4s ease;
+        }
+
+        /* hover 시 살짝 어둡게 */
+        .banner-section:hover .banner-video {
+            filter: brightness(0.6);
+        }
+
+        /* hover 시 가운데 텍스트 나타나기 */
+        .banner-overlay {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+            pointer-events: none;
+        }
+        .banner-section:hover .banner-overlay {
+            opacity: 1;
+        }
+        .banner-overlay .banner-tag {
+            font-size: 0.8rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            border: 1.5px solid #fff;
+            padding: 4px 14px;
+            margin-bottom: 16px;
+        }
+        .banner-overlay .banner-title {
+            font-size: clamp(2rem, 5vw, 4rem);
+            font-weight: 900;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        .content-block { padding: 60px 20px; background: #fff; font-size: 1.5rem; font-weight: 500; word-break: keep-all; line-height: 1.4; }
+
+        .kit-container-wrapper { display: flex; background: #fff; border-bottom: var(--sub-border) solid #000; }
+        .nav-ctrl-btn { width: 80px; background: #fff; border: none; border-right: var(--sub-border) solid #000; border-left: var(--sub-border) solid #000; font-size: 2rem; cursor: pointer; transition: 0.2s; }
+        .nav-ctrl-btn:hover { background: #000; color: #fff; }
+        .kit-track-container { flex-grow: 1; overflow: hidden; }
+        .kit-track { display: flex; transition: transform 0.5s ease; }
+
+        /* 수정된 .kit-item 스타일 */
+        .kit-item { 
+            width: 1000px; 
+            min-width: 1000px; 
+            height: 800px; 
+            border-right: var(--sub-border) solid #000; 
+            padding: 60px; 
+            display: flex; 
+            flex-direction: column; 
+            justify-content: space-between; 
+            position: relative; 
+            cursor: pointer;
+            box-sizing: border-box;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            overflow: hidden;
+        }
+
+        /* 이미지 가독성을 위한 오버레이 */
+        .kit-item::before {
+            content: "";
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.2); 
+            z-index: 1;
+        }
+
+        .category-tag { 
+            position: relative;
+            z-index: 2;
+            align-self: flex-start; 
+            border: var(--sub-border) solid #fff; 
+            padding: 4px 10px; 
+            font-weight: bold; 
+            font-size: 0.75rem; 
+            color: #fff;
+        }
+
+        .kit-item h4 { 
+            position: relative;
+            z-index: 2;
+            font-size: 2.5rem; 
+            margin: 0; 
+            font-weight: 900; 
+            color: #fff;
+        }
+
+        /* ── 매거진 레이아웃 ── */
+        .review-grid {
+            display: grid;
+            grid-template-columns: 1.5fr 1fr;   /* 왼쪽 큰 칸 : 오른쪽 작은 칸 */
+            grid-template-rows: 1fr 1fr;
+            background: #000;
+            gap: var(--sub-border);
+            border-bottom: var(--sub-border) solid #000;
+            min-height: 200px;
+        }
+
+        /* 왼쪽 큰 카드: 두 행 전부 차지 */
+        .review-card {
+            position: relative;
+            overflow: hidden;
+            background: #111;
+        }
+        .review-card.big {
+            grid-row: 1 / 3;   /* 세로로 두 칸 합치기 */
+        }
+
+        .review-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+            transition: transform 0.5s ease;
+        }
+        .review-card:hover .review-img {
+            transform: scale(1.04);  /* hover 시 살짝 확대 */
+        }
+
+        /* 텍스트 오버레이 – 평소엔 숨겨두다가 hover 시 올라오기 */
+        .review-overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 28px 24px 22px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.85));
+            color: #fff;
+            box-sizing: border-box;
+            transform: translateY(30%);
+            opacity: 0;
+            transition: transform 0.4s ease, opacity 0.4s ease;
+        }
+        .review-card:hover .review-overlay {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .review-overlay .review-label {
+            font-size: 0.72rem;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            color: #ccc;
+            margin-bottom: 6px;
+        }
+        .review-overlay .review-title {
+            font-size: 1.3rem;
+            font-weight: 800;
+            line-height: 1.3;
+        }
+        /* 큰 카드는 텍스트 좀 더 크게 */
+        .review-card.big .review-overlay .review-title {
+            font-size: 2rem;
+        }
+
+        @media (max-width: 768px) {
+            .kit-item { min-width: 100%; }
+            .nav-ctrl-btn { width: 60px; }
+            .review-grid {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto;
+                min-height: unset;
+            }
+            .review-card.big { grid-row: auto; }
+            .review-overlay { transform: translateY(0); opacity: 1; }
+        }
+    </style>
+    <script src="common.js"></script>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<main class="wrapper">
+    <section class="banner-section">
+        <video class="banner-video" autoplay muted loop playsinline>
+            <source src="main-banner.mp4" type="video/mp4">
+        </video>
+        <div class="banner-overlay">
+            <span class="banner-tag">Ready Play</span>
+            <div class="banner-title">당신의 첫 시작,<br>우리가 함께합니다</div>
+        </div>
+    </section>
+
+    <div class="section-header"><div class="header-title">WHY STARTER KIT?</div></div>
+    <div class="content-block">
+        우리는 당신의 첫 시작이 완벽하기를 바랍니다.<br>
+        종목별 필수 아이템을 하나의 패키지에 담았습니다.
+    </div>
+
+    <div class="section-header"><div class="header-title">PICK UP! YOUR KIT!</div></div>
+    <div class="kit-container-wrapper">
+        <button class="nav-ctrl-btn" id="kitPrev">←</button>
+        <div class="kit-track-container">
+            <div class="kit-track" id="kitTrack">
+                <div class="kit-item" onclick="location.href='soccer.html';" style="background-image: url('soccer_store.png');">
+                    <span class="category-tag">SOCCER</span>
+                    <h4>축구</h4>
+                </div>
+                <div class="kit-item" onclick="location.href='basketball.html';" style="background-image: url('basketball_store.png');">
+                    <span class="category-tag">BASKETBALL</span>
+                    <h4>농구</h4>
+                </div>
+                <div class="kit-item" onclick="location.href='baseball.html';" style="background-image: url('baseball_store.png');">
+                    <span class="category-tag">BASEBALL</span>
+                    <h4>야구</h4>
+                </div>
+                <div class="kit-item" onclick="location.href='volleyball.html';" style="background-image: url('volleyball_store.png');">
+                    <span class="category-tag">VOLLEYBALL</span>
+                    <h4>배구</h4>
+                </div>
+                <div class="kit-item" onclick="location.href='running.html';" style="background-image: url('running_store.png');">
+                    <span class="category-tag">RUNNING</span>
+                    <h4>러닝</h4>
+                </div>
+                <div class="kit-item" onclick="location.href='health.html';" style="background-image: url('health_store.png');">
+                    <span class="category-tag">HEALTH</span>
+                    <h4>헬스</h4>
+                </div>
+            </div>
+        </div>
+        <button class="nav-ctrl-btn" id="kitNext">→</button>
+    </div>
+
+    <div class="section-header"><div class="header-title">크루들의 내돈내산</div></div>
+    <div class="review-grid">
+        <!-- 왼쪽 : 큰 카드 (두 행 차지) -->
+        <div class="review-card big">
+            <img src="https://images.unsplash.com/photo-1579952363873-27f3bade9f55?q=80&w=1035&auto=format&fit=crop" alt="Review 01" class="review-img">
+            <div class="review-overlay">
+                <div class="review-label">Crew Review · 01</div>
+                <div class="review-title">직접 써보고 인정한<br>나만의 픽!</div>
+            </div>
+        </div>
+        <!-- 오른쪽 위 : 작은 카드 -->
+        <div class="review-card">
+            <img src="https://images.unsplash.com/photo-1502904550040-7534597429ae?q=80&w=1049&auto=format&fit=crop" alt="Review 02" class="review-img">
+            <div class="review-overlay">
+                <div class="review-label">Crew Review · 02</div>
+                <div class="review-title">이건 진짜 강추</div>
+            </div>
+        </div>
+        <!-- 오른쪽 아래 : 작은 카드 -->
+        <div class="review-card">
+            <img src="https://images.unsplash.com/photo-1471295253337-3ceaaedca402?q=80&w=1168&auto=format&fit=crop" alt="Review 03" class="review-img">
+            <div class="review-overlay">
+                <div class="review-label">Crew Review · 03</div>
+                <div class="review-title">내돈내산 후기</div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<div id="footer-container"></div>
+
+<script>
+    // loadLayout()은 common.js에 정의되어 있음
+    // 헤더+푸터 로드 후 자동으로 updateLoginStatus() 호출
+    document.addEventListener('DOMContentLoaded', () => {
+        loadLayout();
+
+        // --- 키트 카드 슬라이더 ---
+        const kitTrack = document.getElementById('kitTrack');
+        let kIdx = 0;
+
+        function moveKit() {
+            const item = document.querySelector('.kit-item');
+            if (item && kitTrack) {
+                kitTrack.style.transform = `translateX(-${kIdx * item.offsetWidth}px)`;
+            }
+        }
+
+        const kitNext = document.getElementById('kitNext');
+        const kitPrev = document.getElementById('kitPrev');
+
+        if (kitNext) {
+            kitNext.addEventListener('click', () => {
+                const items = document.querySelectorAll('.kit-item');
+                kIdx = (kIdx < items.length - 1) ? kIdx + 1 : 0;
+                moveKit();
+            });
+        }
+        if (kitPrev) {
+            kitPrev.addEventListener('click', () => {
+                if (kIdx > 0) { kIdx--; moveKit(); }
+            });
+        }
+        window.addEventListener('resize', moveKit);
+    });
+</script>
+</body>
+</html>

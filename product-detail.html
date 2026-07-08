@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>READY PLAY! - PRODUCT</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        body { background: #f0f0f0; font-family: 'Pretendard', 'Arial Black', sans-serif; margin: 0; }
+
+        .detail-wrapper {
+            max-width: 1000px; margin: 50px auto; padding: 0 20px 100px;
+        }
+
+        /* 뒤로가기 */
+        .back-btn {
+            display: inline-block; margin-bottom: 24px;
+            font-weight: 900; font-size: 14px; cursor: pointer;
+            text-decoration: none; color: #000;
+            border-bottom: 2px solid #000; padding-bottom: 2px;
+        }
+        .back-btn:hover { color: #FF5A10; border-color: #FF5A10; }
+
+        /* 메인 카드 */
+        .detail-card {
+            display: flex; background: #fff;
+            border: 4px solid #000; box-shadow: 12px 12px 0 #000;
+            min-height: 480px;
+        }
+
+        /* 왼쪽 이미지 영역 */
+        .detail-img-box {
+            flex: 1; background: #f4f4f4;
+            border-right: 4px solid #000;
+            display: flex; align-items: center; justify-content: center;
+            position: relative; overflow: hidden; min-height: 400px;
+        }
+        .detail-img-box img {
+            width: 100%; height: 100%; object-fit: cover;
+            transition: transform 0.4s;
+        }
+        .detail-img-box:hover img { transform: scale(1.05); }
+        .detail-category-badge {
+            position: absolute; top: 20px; left: 20px;
+            background: #000; color: #fff;
+            padding: 6px 18px; font-weight: 900; font-size: 16px;
+            letter-spacing: 1px;
+        }
+        .no-image-placeholder {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; color: #ccc; gap: 12px;
+            font-size: 14px; font-weight: 900;
+        }
+        .no-image-placeholder .icon { font-size: 64px; }
+
+        /* 오른쪽 정보 영역 */
+        .detail-info-box {
+            flex: 1; padding: 48px 40px;
+            display: flex; flex-direction: column;
+        }
+        .detail-category-tag {
+            display: inline-block; background: #D4ED00;
+            border: 2px solid #000; padding: 4px 14px;
+            font-weight: 900; font-size: 12px; letter-spacing: 1px;
+            margin-bottom: 16px; width: fit-content;
+        }
+        .detail-name {
+            font-size: 36px; font-weight: 900; margin: 0 0 16px;
+            text-transform: uppercase; line-height: 1.1;
+        }
+        .detail-desc {
+            font-size: 16px; color: #555; line-height: 1.7;
+            margin-bottom: 30px; font-weight: 600;
+            flex: 1;
+        }
+
+        /* 수량 선택 */
+        .qty-row {
+            display: flex; align-items: center; gap: 12px;
+            margin-bottom: 24px;
+        }
+        .qty-label { font-weight: 900; font-size: 14px; }
+        .qty-btn {
+            width: 36px; height: 36px; border: 3px solid #000;
+            background: #fff; font-size: 20px; font-weight: 900;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            transition: 0.1s;
+        }
+        .qty-btn:hover { background: #000; color: #fff; }
+        .qty-display {
+            width: 48px; height: 36px; border: 3px solid #000;
+            text-align: center; font-weight: 900; font-size: 18px;
+            display: flex; align-items: center; justify-content: center;
+        }
+
+        /* 가격 + 버튼 */
+        .detail-price-row {
+            display: flex; justify-content: space-between; align-items: center;
+            border-top: 3px solid #000; padding-top: 20px; margin-top: auto;
+        }
+        .detail-price { font-size: 32px; font-weight: 900; }
+
+        .detail-btn-group { display: flex; gap: 10px; }
+        .detail-btn {
+            padding: 14px 20px; border: 3px solid #000; font-weight: 900;
+            font-size: 14px; cursor: pointer; transition: 0.1s;
+            box-shadow: 4px 4px 0 #000; font-family: inherit;
+        }
+        .detail-btn:active { transform: translate(3px,3px); box-shadow: none; }
+        .detail-btn.wish { background: #fff; color: #000; }
+        .detail-btn.wish:hover { background: #FF5A10; color: #fff; border-color: #FF5A10; }
+        .detail-btn.cart { background: #000; color: #fff; }
+        .detail-btn.cart:hover { background: #D4ED00; color: #000; border-color: #000; }
+
+        /* 스펙 테이블 */
+        .spec-section {
+            margin-top: 40px; background: #fff;
+            border: 4px solid #000; box-shadow: 8px 8px 0 #000; padding: 30px;
+        }
+        .spec-title {
+            font-size: 20px; font-weight: 900; text-transform: uppercase;
+            border-bottom: 3px solid #000; padding-bottom: 12px; margin: 0 0 20px;
+        }
+        .spec-row {
+            display: flex; padding: 12px 0; border-bottom: 1px solid #eee;
+            font-size: 14px;
+        }
+        .spec-row:last-child { border-bottom: none; }
+        .spec-key { width: 120px; font-weight: 900; color: #555; flex-shrink: 0; }
+        .spec-val { font-weight: 700; }
+
+        /* 로딩 / 오류 */
+        .state-box {
+            text-align: center; padding: 100px 20px;
+            font-size: 20px; font-weight: 900; color: #aaa;
+        }
+
+        @media (max-width: 768px) {
+            .detail-card { flex-direction: column; }
+            .detail-img-box { border-right: none; border-bottom: 4px solid #000; min-height: 280px; }
+            .detail-info-box { padding: 28px 20px; }
+            .detail-name { font-size: 26px; }
+            .detail-price { font-size: 24px; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<div class="detail-wrapper">
+    <a class="back-btn" onclick="history.back()">← 뒤로가기</a>
+    <div id="detail-content">
+        <div class="state-box">상품 정보를 불러오는 중...</div>
+    </div>
+</div>
+
+<div id="footer-container"></div>
+
+<script>
+    const sb = getSupabase();
+    let currentProduct = null;
+    let qty = 1;
+
+    // URL에서 상품 id 파라미터 읽기
+    const urlParams = new URLSearchParams(window.location.search);
+    const productId = urlParams.get('id');
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadLayout();
+
+        if (!productId) {
+            showError('상품 ID가 없습니다.');
+            return;
+        }
+        await loadProduct(productId);
+    });
+
+    async function loadProduct(id) {
+        const { data: product, error } = await sb
+            .from('products')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error || !product) {
+            showError('상품 정보를 찾을 수 없습니다.');
+            return;
+        }
+
+        currentProduct = product;
+        document.title = `READY PLAY! - ${product.name}`;
+        renderProduct(product);
+    }
+
+    function renderProduct(p) {
+        const imgHtml = p.img
+            ? `<img src="${p.img}" alt="${p.name}" onerror="this.parentElement.innerHTML='<div class=no-image-placeholder><div class=icon>🏅</div><div>이미지 없음</div></div>'">`
+            : `<div class="no-image-placeholder"><div class="icon">🏅</div><div>이미지 없음</div></div>`;
+
+        const categoryMap = {
+            SOCCER: '축구', BASKETBALL: '농구', BASEBALL: '야구',
+            VOLLEYBALL: '배구', RUNNING: '러닝', HEALTH: '헬스'
+        };
+        const categoryKor = categoryMap[p.category] || p.category || 'NEW';
+
+        document.getElementById('detail-content').innerHTML = `
+            <div class="detail-card">
+                <div class="detail-img-box">
+                    <span class="detail-category-badge">${p.category || 'NEW'}</span>
+                    ${imgHtml}
+                </div>
+                <div class="detail-info-box">
+                    <span class="detail-category-tag">${categoryKor} CATEGORY</span>
+                    <h1 class="detail-name">${p.name}</h1>
+                    <p class="detail-desc">${p.description || '상품 설명이 없습니다.'}</p>
+
+                    <div class="qty-row">
+                        <span class="qty-label">수량</span>
+                        <button class="qty-btn" onclick="changeQty(-1)">−</button>
+                        <div class="qty-display" id="qty-display">1</div>
+                        <button class="qty-btn" onclick="changeQty(1)">+</button>
+                    </div>
+
+                    <div class="detail-price-row">
+                        <div class="detail-price" id="detail-price">
+                            ₩ ${(p.price || 0).toLocaleString()}
+                        </div>
+                        <div class="detail-btn-group">
+                            <button class="detail-btn wish" onclick="doWishlist()">♥ 찜</button>
+                            <button class="detail-btn cart" onclick="doAddToCart()">🛒 장바구니</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="spec-section">
+                <div class="spec-title">PRODUCT INFO</div>
+                <div class="spec-row">
+                    <span class="spec-key">상품명</span>
+                    <span class="spec-val">${p.name}</span>
+                </div>
+                <div class="spec-row">
+                    <span class="spec-key">카테고리</span>
+                    <span class="spec-val">${categoryKor} (${p.category || '-'})</span>
+                </div>
+                <div class="spec-row">
+                    <span class="spec-key">가격</span>
+                    <span class="spec-val">₩ ${(p.price || 0).toLocaleString()}</span>
+                </div>
+                <div class="spec-row">
+                    <span class="spec-key">재고</span>
+                    <span class="spec-val">${p.stock != null ? p.stock + '개' : '재고 확인 중'}</span>
+                </div>
+                <div class="spec-row">
+                    <span class="spec-key">등록일</span>
+                    <span class="spec-val">${formatDate(p.created_at)}</span>
+                </div>
+            </div>
+        `;
+    }
+
+    // 수량 변경
+    function changeQty(delta) {
+        qty = Math.max(1, qty + delta);
+        document.getElementById('qty-display').innerText = qty;
+        if (currentProduct) {
+            document.getElementById('detail-price').innerText =
+                '₩ ' + (currentProduct.price * qty).toLocaleString();
+        }
+    }
+
+    // 찜하기
+    function doWishlist() {
+        if (!currentProduct) return;
+        addToWishlist(
+            currentProduct.name,
+            (currentProduct.price || 0).toLocaleString() + '원',
+            currentProduct.category || '',
+            currentProduct.img || ''
+        );
+    }
+
+    // 장바구니 담기
+    function doAddToCart() {
+        if (!currentProduct) return;
+        let cart = JSON.parse(sessionStorage.getItem('OrderTemp')) || [];
+        const existing = cart.find(i => i.name === currentProduct.name);
+        if (existing) {
+            existing.qty = (existing.qty || 1) + qty;
+        } else {
+            cart.push({
+                name:  currentProduct.name,
+                price: currentProduct.price || 0,
+                qty:   qty,
+                img:   currentProduct.img || ''
+            });
+        }
+        sessionStorage.setItem('OrderTemp', JSON.stringify(cart));
+        if (confirm(`"${currentProduct.name}" ${qty}개가 장바구니에 담겼습니다!\n장바구니로 이동하시겠습니까?`)) {
+            location.href = 'cart.html';
+        }
+    }
+
+    function showError(msg) {
+        document.getElementById('detail-content').innerHTML =
+            `<div class="state-box">😢 ${msg}<br><br><a class="back-btn" onclick="history.back()">← 뒤로가기</a></div>`;
+    }
+
+    function formatDate(iso) {
+        if (!iso) return '-';
+        const d = new Date(iso);
+        return `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+    }
+</script>
+</body>
+</html>

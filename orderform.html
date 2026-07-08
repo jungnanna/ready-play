@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>ORDER FORM - Ready Play!</title>
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script src="https://js.tosspayments.com/v1/payment"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        /* [원래 구조 100% 유지] */
+        body { margin: 0; font-family: 'Pretendard', sans-serif; background-color: #f7f7f7; color: #000; padding-bottom: 100px; /* padding-top: common.css에서 통일 */ }
+        .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+        h1 { text-align: center; font-family: 'Arial Black'; font-size: 40px; margin-bottom: 50px; }
+        .order-wrapper { display: grid; grid-template-columns: 1fr 350px; gap: 30px; }
+        .form-section { background: #fff; border: 3px solid #000; padding: 30px; margin-bottom: 25px; box-shadow: 8px 8px 0px #000; }
+        .section-title { font-family: 'Arial Black'; font-size: 20px; border-bottom: 3px solid #000; padding-bottom: 10px; margin-bottom: 20px; }
+        .form-table { width: 100%; border-collapse: collapse; }
+        .form-table th { width: 120px; text-align: left; padding: 15px 0; font-weight: 900; }
+        input[type="text"], input[type="email"], select { width: 100%; padding: 10px; border: 2px solid #000; font-size: 14px; box-sizing: border-box; }
+        .addr-row { display: flex; gap: 10px; margin-bottom: 5px; }
+        .btn-black { background: #000; color: #fff; border: none; padding: 10px 15px; cursor: pointer; font-weight: bold; }
+        .radio-group { margin-bottom: 15px; display: flex; gap: 20px; font-weight: bold; background: #eee; padding: 10px; }
+        .prod-item { display: flex; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; gap: 15px; }
+        .prod-info-box { flex: 1; }
+        .prod-price-box { min-width: 100px; text-align: right; font-weight: bold; margin-right: 10px; }
+        .item-del-btn { cursor: pointer; font-weight: bold; color: #ff0000; border: 2px solid #ff0000; background: #fff; padding: 4px 8px; font-size: 12px; white-space: nowrap; }
+        .item-del-btn:hover { background: #ffeeee; }
+        .price-box { background: #fff; border: 3px solid #000; padding: 25px; box-shadow: 8px 8px 0px #000; position: sticky; top: 120px; }
+        .price-row { display: flex; justify-content: space-between; margin-bottom: 15px; font-weight: bold; }
+        .total-row { border-top: 3px solid #000; padding-top: 15px; font-size: 22px; color: #ff0000; }
+        .pay-methods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 20px; }
+        .pay-btn { padding: 10px 5px; border: 2px solid #000; background: #fff; cursor: pointer; font-weight: bold; font-size: 12px; transition: 0.1s; }
+        .pay-btn.active { background: #000; color: #fff; }
+        .final-btn { width: 100%; padding: 20px; background: #000; color: #fff; font-size: 20px; font-weight: bold; margin-top: 20px; border: none; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<div class="container">
+    <h1>READY PLAY! ORDER</h1>
+    <div class="order-wrapper">
+        <div class="main-form">
+            <div class="form-section">
+                <div class="section-title">ORDERER INFO</div>
+                <table class="form-table">
+                    <tr><th>주문자</th><td><input type="text" id="orderer_name" placeholder="이름을 입력하세요"></td></tr>
+                    <tr><th>휴대폰 번호</th><td><input type="text" id="orderer_phone" placeholder="010-0000-0000"></td></tr>
+                    <tr>
+                        <th>주소</th>
+                        <td>
+                            <div class="addr-row">
+                                <input type="text" id="order_postcode" placeholder="우편번호" style="width:100px;">
+                                <button class="btn-black" onclick="execDaumPostcode('order')">주소 검색</button>
+                            </div>
+                            <input type="text" id="order_addr" placeholder="기본주소" style="margin-bottom:5px;">
+                            <input type="text" id="order_detail" placeholder="상세주소를 입력하세요">
+                        </td>
+                    </tr>
+                </table>
+            </div>
+
+            <div class="form-section">
+                <div class="section-title">SHIPPING INFO</div>
+                <div class="radio-group">
+                    <label><input type="radio" name="delivery" onclick="copyInfo(true)"> 주문자 정보와 동일</label>
+                    <label><input type="radio" name="delivery" onclick="copyInfo(false)"> 새로운 배송지</label>
+                </div>
+                <table class="form-table">
+                    <tr><th>받는 사람</th><td><input type="text" id="dest_name"></td></tr>
+                    <tr>
+                        <th>주소</th>
+                        <td>
+                            <div class="addr-row">
+                                <input type="text" id="dest_postcode" style="width:100px;">
+                                <button class="btn-black" onclick="execDaumPostcode('dest')">주소 검색</button>
+                            </div>
+                            <input type="text" id="dest_addr" style="margin-bottom:5px;">
+                            <input type="text" id="dest_detail" placeholder="상세주소">
+                        </td>
+                    </tr>
+                    <tr><th>휴대폰 번호</th><td><input type="text" id="dest_phone"></td></tr>
+                </table>
+            </div>
+
+            <div class="form-section">
+                <div class="section-title">ORDER ITEMS</div>
+                <div id="orderItemList"></div>
+            </div>
+        </div>
+
+        <div class="side-bar">
+            <div class="price-box">
+                <div class="section-title" style="border:none;">PAYMENT</div>
+                <div class="price-row"><span>상품금액</span><span id="sum_prod">0원</span></div>
+                <div class="price-row"><span>배송비</span><span id="sum_ship">3,000원</span></div>
+                <div class="price-row"><span>할인 금액</span><span id="sum_discount" style="color:blue;">- 0원</span></div>
+                <div class="price-row total-row"><span>최종 결제</span><span id="sum_total">0원</span></div>
+
+                <div style="margin-top:20px; font-weight:bold; font-size:14px;">결제 수단 선택</div>
+                <div class="pay-methods">
+                    <button class="pay-btn active" onclick="selectPay('카드', this)">신용카드</button>
+                    <button class="pay-btn" onclick="selectPay('무통장', this)">무통장입금</button>
+                    <button class="pay-btn" onclick="selectPay('계좌이체', this)">계좌이체</button>
+                    <button class="pay-btn" onclick="selectPay('카카오페이', this)">카카오페이</button>
+                    <button class="pay-btn" onclick="selectPay('네이버페이', this)">네이버페이</button>
+                </div>
+                <button class="final-btn" onclick="doPayment()">결제하기</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="footer-container"></div>
+
+<script>
+    // common.js의 getSupabase() 사용 (URL/KEY 중복 제거)
+    // toggleMenu, toggleSubmenu, checkLoginAndMove, updateLoginStatus → common.js에서 담당
+    const supabaseClient = getSupabase();
+
+    let orderData = JSON.parse(sessionStorage.getItem('OrderTemp')) || [];
+    let currentPayMethod = '카드';
+    let isMember = false;
+    const clientKey = 'test_ck_kYG57Eba3Gj6jb0vyZgE8pWDOxmA';
+    const tossPayments = TossPayments(clientKey);
+
+    window.onload = async function() {
+        await loadLayout(); // common.js에서 헤더+푸터 로드 + updateLoginStatus() 자동 호출
+        renderOrderItems();
+        await autoFillUserInfo(); 
+    };
+
+    // [핵심 수정] Supabase에서 회원 정보를 가져오는 함수
+    async function autoFillUserInfo() {
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        
+        if (!session) {
+            console.log("비회원 주문");
+            isMember = false;
+            return; 
+        }
+
+        try {
+            // profiles 테이블에서 로그인된 유저 ID로 데이터 단건 조회
+            const { data: profile, error } = await supabaseClient
+                .from('profiles')
+                .select('*')
+                .eq('id', session.user.id)
+                .single();
+
+            if (profile) {
+                isMember = true; 
+                document.getElementById('orderer_name').value = profile.name || '';
+                document.getElementById('orderer_phone').value = profile.phone || '';
+                document.getElementById('order_postcode').value = profile.postcode || '';
+                document.getElementById('order_addr').value = profile.addr || '';
+                document.getElementById('order_detail').value = profile.detail || '';
+                console.log("회원 정보 로드 성공:", profile.name);
+            }
+        } catch (error) { 
+            console.error("데이터 로드 실패:", error); 
+        }
+    }
+
+    function renderOrderItems() {
+        const listDiv = document.getElementById('orderItemList');
+        listDiv.innerHTML = '';
+        let total = 0;
+        if(orderData.length === 0) { 
+            listDiv.innerHTML = "<p style='text-align:center; padding:20px;'>주문 목록이 비어 있습니다.</p>"; 
+        }
+        orderData.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'prod-item';
+            row.innerHTML = `
+                <div class="prod-info-box">
+                    <div style="font-weight:bold;">${item.name}</div>
+                    <div style="font-size:13px; color:#666;">수량: ${item.qty}개</div>
+                </div>
+                <div class="prod-price-box">₩ ${(item.price * item.qty).toLocaleString()}</div>
+                <button class="item-del-btn" onclick="removeItem(${index})">삭제</button>
+            `;
+            listDiv.appendChild(row);
+            total += (item.price * item.qty);
+        });
+        const shipping = total > 0 ? 3000 : 0;
+        const discount = Math.floor(total * 0.05);
+        const finalAmount = total + shipping - discount;
+        document.getElementById('sum_prod').innerText = total.toLocaleString() + "원";
+        document.getElementById('sum_ship').innerText = shipping.toLocaleString() + "원";
+        document.getElementById('sum_discount').innerText = "-" + discount.toLocaleString() + "원";
+        document.getElementById('sum_total').innerText = finalAmount.toLocaleString() + "원";
+    }
+
+    function removeItem(index) {
+        if(confirm("상품을 주문 목록에서 제거할까요?")) {
+            orderData.splice(index, 1);
+            sessionStorage.setItem('OrderTemp', JSON.stringify(orderData));
+            renderOrderItems();
+        }
+    }
+
+    function selectPay(method, btn) {
+        currentPayMethod = method;
+        const btns = document.querySelectorAll('.pay-btn');
+        btns.forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+    }
+
+    // [핵심 수정] 배송지 정보 복사 함수
+    function copyInfo(isSame) {
+        if (isSame) {
+            document.getElementById('dest_name').value = document.getElementById('orderer_name').value;
+            document.getElementById('dest_phone').value = document.getElementById('orderer_phone').value;
+            document.getElementById('dest_postcode').value = document.getElementById('order_postcode').value;
+            document.getElementById('dest_addr').value = document.getElementById('order_addr').value; 
+            document.getElementById('dest_detail').value = document.getElementById('order_detail').value;
+        } else {
+            document.getElementById('dest_name').value = '';
+            document.getElementById('dest_phone').value = '';
+            document.getElementById('dest_postcode').value = '';
+            document.getElementById('dest_addr').value = '';
+            document.getElementById('dest_detail').value = '';
+        }
+    }
+
+    function execDaumPostcode(prefix) {
+        new daum.Postcode({
+            oncomplete: function(data) {
+                document.getElementById(prefix + '_postcode').value = data.zonecode;
+                document.getElementById(prefix + '_addr').value = data.address;
+            }
+        }).open();
+    }
+
+    // 주문번호 생성 (RP + 날짜 + 랜덤 4자리)
+    function generateOrderNumber() {
+        const now = new Date();
+        const datePart = now.getFullYear().toString().slice(2)
+            + String(now.getMonth() + 1).padStart(2, '0')
+            + String(now.getDate()).padStart(2, '0');
+        const randPart = Math.floor(1000 + Math.random() * 9000);
+        return 'RP' + datePart + randPart;
+    }
+
+    async function doPayment() {
+        if (orderData.length === 0) { alert("주문할 상품이 없습니다."); return; }
+
+        const name  = document.getElementById('orderer_name').value.trim();
+        const phone = document.getElementById('orderer_phone').value.trim();
+        if (!name || !phone) { alert("주문자 이름과 전화번호를 입력해주세요."); return; }
+
+        const totalText = document.getElementById('sum_total').innerText;
+        const amount = parseInt(totalText.replace(/[^0-9]/g, ''));
+        const orderName = orderData.length > 1 ? `${orderData[0].name} 외 ${orderData.length - 1}건` : orderData[0].name;
+        const orderId = 'ORDER_' + new Date().getTime();
+        const orderNumber = generateOrderNumber();
+
+        // Supabase Auth 세션에서 user_id 가져오기 (비회원은 null)
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        const userId = session ? session.user.id : null;
+        const email  = session ? session.user.email : 'guest@readyplay.com';
+
+        // ★ DB 저장 대신 sessionStorage에 임시 보관 → 결제 성공 후 success.html에서 DB 저장
+        sessionStorage.setItem('pendingOrder', JSON.stringify({
+            user_id:      userId,
+            user_name:    name,
+            email:        email,
+            phone:        phone,
+            postcode:     document.getElementById('order_postcode').value.trim(),
+            addr:         document.getElementById('order_addr').value.trim(),
+            detail:       document.getElementById('order_detail').value.trim(),
+            items:        orderData,
+            total_price:  amount,
+            pay_method:   currentPayMethod,
+            status:       '결제완료',
+            order_number: orderNumber
+        }));
+
+        const currentPath = window.location.pathname.substring(0, window.location.pathname.lastIndexOf('/'));
+        const successUrl = window.location.origin + currentPath + `/success.html?isMember=${isMember}&orderId=${orderId}&amount=${amount}&orderNumber=${orderNumber}`;
+        const baseOptions = {
+            amount: amount, orderId: orderId, orderName: orderName,
+            customerName: name,
+            successUrl: successUrl, failUrl: window.location.origin + currentPath + '/fail.html',
+        };
+
+        if (currentPayMethod === '카카오페이') {
+            tossPayments.requestPayment('카드', { ...baseOptions, flowMode: 'DIRECT', easyPay: 'KakaoPay' }).catch(err => alert(err.message));
+        } else if (currentPayMethod === '네이버페이') {
+            tossPayments.requestPayment('카드', { ...baseOptions, flowMode: 'DIRECT', easyPay: 'NaverPay' }).catch(err => alert(err.message));
+        } else if (currentPayMethod === '무통장') {
+            tossPayments.requestPayment('가상계좌', {
+                ...baseOptions,
+                bankCode: '',
+                customerEmail: email,
+                customerMobilePhone: phone.replace(/-/g, '') || '01000000000',
+            }).catch(err => alert(err.message));
+        } else if (currentPayMethod === '계좌이체') {
+            tossPayments.requestPayment('계좌이체', baseOptions).catch(err => alert(err.message));
+        } else {
+            tossPayments.requestPayment('카드', baseOptions).catch(err => alert(err.message));
+        }
+    }
+</script>
+</body>
+</html>

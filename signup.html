@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>READY PLAY! - JOIN US</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap');
+        body { font-family: 'Pretendard', sans-serif; margin: 0; background-color: #fff; color: #000; display: flex; flex-direction: column; min-height: 100vh; /* padding-top: common.css에서 통일 */ }
+        .main-content { flex: 1; display: flex; justify-content: center; align-items: center; padding: 40px 0; }
+        .signup-container { width: 100%; max-width: 500px; padding: 20px; }
+        .title { font-family: 'Archivo Black', sans-serif; font-size: 50px; text-align: center; margin-bottom: 10px; letter-spacing: -2px; }
+        .subtitle { text-align: center; font-weight: 800; font-size: 14px; margin-bottom: 50px; border-bottom: 5px solid #000; padding-bottom: 20px; text-transform: uppercase; }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; font-family: 'Archivo Black', sans-serif; font-size: 12px; margin-bottom: 8px; text-transform: uppercase; }
+        .form-group input { width: 100%; padding: 15px; font-size: 16px; font-weight: 700; border: 3px solid #000; box-sizing: border-box; outline: none; transition: 0.2s; }
+        .form-group input:focus { background-color: #f0f0f0; transform: translate(-2px, -2px); box-shadow: 4px 4px 0px #000; }
+        
+        /* 주소 검색 스타일 */
+        .addr-row { display: flex; gap: 10px; margin-bottom: 10px; }
+        .btn-black-sm { background: #000; color: #fff; border: 3px solid #000; padding: 0 20px; cursor: pointer; font-weight: bold; font-family: 'Archivo Black'; }
+
+        .terms-area { border: 3px solid #000; padding: 20px; margin-top: 40px; margin-bottom: 30px; }
+        .terms-item { display: flex; align-items: center; margin-bottom: 10px; font-size: 13px; font-weight: 700; }
+        .terms-item input[type="checkbox"] { width: 18px; height: 18px; margin-right: 10px; accent-color: #000; }
+        .btn-join { width: 100%; padding: 20px; background-color: #000; color: #fff; font-family: 'Archivo Black', sans-serif; font-size: 20px; border: none; cursor: pointer; transition: 0.3s; text-transform: uppercase; }
+        .btn-join:hover { background-color: #333; letter-spacing: 2px; }
+        .login-link { display: block; text-align: center; margin-top: 20px; font-size: 13px; font-weight: 800; color: #888; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<main class="main-content">
+    <div class="signup-container">
+        <div class="title">JOIN US</div>
+        <div class="subtitle">Get Ready to Play with us.</div>
+
+        <form id="signupForm">
+            <div class="form-group"><label>Email (User ID)</label><input type="email" id="userEmail" required></div>
+            <div class="form-group"><label>Password</label><input type="password" id="userPw" placeholder="6자 이상" required></div>
+            <div class="form-group"><label>Confirm Password</label><input type="password" id="confirmPw" required></div>
+            <div class="form-group"><label>Name</label><input type="text" id="userName" required></div>
+            <div class="form-group"><label>Phone</label><input type="text" id="userPhone" placeholder="010-0000-0000" required></div>
+            
+            <div class="form-group">
+                <label>Address</label>
+                <div class="addr-row">
+                    <input type="text" id="postcode" placeholder="우편번호" readonly>
+                    <button type="button" class="btn-black-sm" onclick="execDaumPostcode()">FIND</button>
+                </div>
+                <input type="text" id="address" placeholder="기본주소" readonly style="margin-bottom:10px;">
+                <input type="text" id="detailAddress" placeholder="상세주소를 입력하세요">
+            </div>
+
+            <div class="terms-area">
+                <div class="terms-item"><input type="checkbox" id="all"><label for="all">전체 동의하기</label></div>
+                <div class="terms-item"><input type="checkbox" id="term1" class="term-check" required><label for="term1">[필수] 이용약관</label></div>
+                <div class="terms-item"><input type="checkbox" id="term2" class="term-check" required><label for="term2">[필수] 개인정보 수집</label></div>
+            </div>
+
+            <button type="submit" id="btnJoin" class="btn-join">CREATE ACCOUNT</button>
+        </form>
+        <a href="login.html" class="login-link">ALREADY HAVE AN ACCOUNT? LOGIN</a>
+    </div>
+</main>
+
+<div id="footer-container"></div>
+
+<script>
+    // common.js의 getSupabase() 사용 (URL/KEY 중복 제거)
+    const supabaseClient = getSupabase();
+
+    // 주소 검색 창 (Daum API)
+    function execDaumPostcode() {
+        new daum.Postcode({
+            oncomplete: function(data) {
+                document.getElementById('postcode').value = data.zonecode;
+                document.getElementById('address').value = data.address;
+                document.getElementById('detailAddress').focus();
+            }
+        }).open();
+    }
+
+    // 전체 동의 체크 로직
+    document.getElementById('all')?.addEventListener('change', (e) => {
+        document.querySelectorAll('.term-check').forEach(cb => cb.checked = e.target.checked);
+    });
+
+    // 회원가입 제출
+    document.getElementById('signupForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        const email = document.getElementById('userEmail').value;
+        const password = document.getElementById('userPw').value;
+        const confirmPw = document.getElementById('confirmPw').value;
+        const name = document.getElementById('userName').value;
+        const phone = document.getElementById('userPhone').value;
+        const postcode = document.getElementById('postcode').value;
+        const addr = document.getElementById('address').value;
+        const detail = document.getElementById('detailAddress').value;
+
+        if (password !== confirmPw) return alert('비밀번호가 일치하지 않습니다.');
+
+        const btnJoin = document.getElementById('btnJoin');
+        btnJoin.disabled = true;
+        btnJoin.innerText = 'PROCESSING...';
+
+        try {
+            const { data: authData, error: authError } = await supabaseClient.auth.signUp({
+                email, password, options: { data: { full_name: name } }
+            });
+
+            if (authError) throw authError;
+
+            if (authData.user) {
+                // [주의] DB에 addr, phone 컬럼이 없으면 여기서 에러 발생 (SQL 쿼리 실행 필수)
+                const { error: dbError } = await supabaseClient
+                    .from('profiles')
+                    .insert([{ 
+                        id: authData.user.id, email, name, phone, postcode, addr, detail 
+                    }]);
+                
+                if (dbError) throw dbError;
+                
+                alert('회원가입 성공! 로그인을 진행해 주세요.');
+                window.location.href = 'login.html';
+            }
+        } catch (error) {
+            alert('에러: ' + error.message);
+        } finally {
+            btnJoin.disabled = false;
+            btnJoin.innerText = 'CREATE ACCOUNT';
+        }
+    });
+
+    // loadLayout()은 common.js에 정의 — 헤더+푸터 로드 + updateLoginStatus() 자동 호출
+    document.addEventListener('DOMContentLoaded', loadLayout);
+</script>
+</body>
+</html>

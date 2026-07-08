@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ready Play! - 야구 입문 키트</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        body { margin: 0; font-family: 'Arial Black', sans-serif; /* padding-top: common.css에서 통일 */ overflow-x: hidden; background:#f0f0f0; }
+        .container { width:1100px; margin:0 auto 40px auto; background:white; padding:30px; border:3px solid #000; box-shadow:8px 8px 0px #000; box-sizing: border-box; }
+        .top { display:flex; border:3px solid #000; }
+        
+        .product-img { width: 60%; border-right: 3px solid #000; padding: 40px; box-sizing: border-box; display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 30px; background: #fafafa; --img-size: 650px; }
+        .product-img img { width: var(--img-size); height: var(--img-size); object-fit: contain; transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); filter: drop-shadow(5px 5px 0px rgba(0,0,0,0.1)); }
+        #ball { width: calc(var(--img-size) + 20px); height: calc(var(--img-size) + 20px); }
+
+        .product-info { width:40%; padding:20px; }
+        .product-info h2 { margin-bottom:20px; }
+        .item { border-bottom:2px dashed #000; padding:20px 0; } 
+        .item-top { display:flex; justify-content:space-between; align-items: center; }
+        .option select { width:100%; padding:6px; border:2px solid #000; margin-top: 10px; font-family: sans-serif; }
+        .price { margin-top:20px; font-size:20px; font-weight:bold; }
+        
+        button { border:2px solid #000; background:white; cursor:pointer; box-shadow:4px 4px 0px #000; transition: 0.1s; font-family: 'Arial Black', sans-serif; }
+        button:active { transform:translate(4px,4px); box-shadow:0 0 0; }
+        
+        .btn-group { display:flex; gap:10px; margin-top:15px; }
+        .btn { flex:1; padding:10px; font-weight: bold; }
+        .buy { width:100%; margin-top:10px; padding:12px; background:black; color:white; font-weight: bold; font-size: 16px; }
+
+        .tab-group { display: flex; gap: 15px; margin: 40px 0 20px 0; flex-wrap: wrap; }
+        .tab-btn { padding: 12px 25px; font-size: 14px; font-weight: 900; text-transform: uppercase; background: #fff; border: 3px solid #000; box-shadow: 4px 4px 0px #000; cursor: pointer; border-radius: 50px; }
+        .tab-btn:hover { background: #bcbcbc; }
+
+        .review-section { margin-top:20px; border:3px solid #000; padding:20px; box-shadow:6px 6px 0px #000; background: #fff; }
+        .review { border-bottom:1px dashed #000; padding:15px 0; font-family: sans-serif; }
+        .review b { font-family: 'Arial Black', sans-serif; }
+
+        .detail-grid { margin-top:40px; display:grid; grid-template-columns:1fr 1fr; gap:30px; }
+        .box { border:3px solid #000; padding:20px; background:white; box-shadow:6px 6px 0px #000; }
+        .large { grid-column:span 2; }
+        .size-img { width:100%; margin-top:10px; border: 1px solid #eee; background: #f9f9f9; text-align: center; line-height: 100px; color: #ccc; }
+
+        #cartSidebar { position: fixed; top: 0; right: -450px; width: 380px; height: 100vh; background: #fff; border-left: 4px solid #000; display: flex; flex-direction: column; padding: 25px; box-sizing: border-box; box-shadow: -10px 0 30px rgba(0,0,0,0.2); z-index: 2000; transition: right 0.4s cubic-bezier(0.075, 0.82, 0.165, 1); }
+        #cartSidebar.open { right: 0; }
+        .cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .cart-items-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        .c-item { display: flex; gap: 15px; margin-bottom: 25px; position: relative; font-family: sans-serif; }
+        .c-item-name { font-family: 'Arial Black', sans-serif; font-size: 14px; }
+        
+        .cart-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 1500; }
+
+        .top-btn { position: fixed; bottom: 40px; right: 40px; width: 60px; height: 60px; background: #000; color: #fff; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; border: 3px solid #000; box-shadow: 6px 6px 0px #ccc; cursor: pointer; z-index: 1000; transition: 0.3s; opacity: 0; visibility: hidden; }
+        .top-btn.show { opacity: 1; visibility: visible; }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<div class="top-btn" id="scrollTopBtn" onclick="scrollToTop()">▲</div>
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+
+<div id="cartSidebar">
+    <div class="cart-header">
+        <div style="font-size: 28px; font-weight: 900;">Cart</div>
+        <div style="font-size: 30px; cursor: pointer;" onclick="toggleCart()">×</div>
+    </div>
+    <div class="cart-items-container" id="cartItems">
+        <div style="text-align: center; padding: 100px 0; color: #ccc;">장바구니가 비어있습니다.</div>
+    </div>
+    <div style="border-top: 2px solid #000; padding-top: 15px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span>결제예정금액</span>
+            <span id="cTotalAmt" style="font-weight: 900;">0원</span>
+        </div>
+        <button class="buy" onclick="location.href='cart.html'">장바구니 페이지로</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="top">
+        <div class="product-img">
+            <img src="baseball_store.png">
+        </div>
+
+        <div class="product-info">
+            <h2>야구 스타터 키트</h2>
+            <p>처음 야구를 시작하는 사람들을 위한 기본 장비 구성</p>
+            <p style="color:red; font-size:13px;">※ 최소 3개 구성품 선택</p>
+
+            <div class="item" data-price="10000" data-name="ball">
+                <div class="item-top"><span>야구공</span><button class="toggle included">제거</button></div>
+            </div>
+            <div class="item" data-price="30000" data-name="bat">
+                <div class="item-top"><span>야구 배트</span><button class="toggle included">제거</button></div>
+            </div>
+            <div class="item" data-price="30000" data-name="helmet">
+                <div class="item-top"><span>헬멧</span><button class="toggle included">제거</button></div>
+                <div class="option">
+                    <select class="size-select"><option value="미선택">사이즈 선택</option><option>S</option><option>M</option><option>L</option><option>XL</option></select>
+                </div>
+            </div>
+            <div class="item" data-price="20000" data-name="glove">
+                <div class="item-top"><span>야구 글러브</span><button class="toggle included">제거</button></div>
+                <div class="option">
+                    <select class="size-select"><option value="미선택">사이즈 선택</option><option>11인치</option><option>11.5인치</option><option>12인치</option></select>
+                </div>
+            </div>
+            <div class="item" data-price="25000" data-name="uniform">
+                <div class="item-top"><span>유니폼</span><button class="toggle included">제거</button></div>
+                <div class="option">
+                    <select class="size-select"><option value="미선택">사이즈 선택</option><option>S</option><option>M</option><option>L</option><option>XL</option></select>
+                </div>
+            </div>
+
+            <div class="price">총 금액 ₩ <span id="total">115,000</span></div>
+            <div class="btn-group">
+                <button class="btn" onclick="addToWishlist('야구 스타터 키트', document.getElementById('total').innerText + '원', 'BASEBALL', 'baseball_kit.png')">찜</button>
+                <button class="btn" onclick="addToCart()">장바구니</button>
+            </div>
+            <button class="buy" onclick="addToCart()">구매하기</button>
+        </div>
+    </div>
+
+    <div class="tab-group">
+        <button class="tab-btn" onclick="scrollToSection('review-anchor')">리뷰</button>
+        <button class="tab-btn" onclick="scrollToSection('size-guide')">사이즈 가이드</button>
+        <button class="tab-btn" onclick="scrollToSection('product-desc')">상세 정보</button>
+        <button class="tab-btn" onclick="scrollToSection('product-detail')">디테일 뷰</button>
+        <button class="tab-btn" onclick="scrollToSection('shipping-info')">배송/환불</button>
+    </div>
+
+    <div class="review-section" id="review-anchor">
+        <h3>리뷰 (3)</h3>
+        <div class="review">⭐⭐⭐⭐⭐ <b>김OO</b><br>야구 팬이어서 꼭 한 번 해보고 싶었어요. 구성이 알차네요!</div>
+        <div class="review">⭐⭐⭐⭐ <b>박OO</b><br>적당히 필요한 구성이라 입문용으로 좋네요. 배송도 빨라요.</div>
+        <div class="review">⭐⭐⭐⭐⭐ <b>이OO</b><br>필요 없는 물건을 뺄 수 있어서 합리적입니다.</div>
+    </div>
+
+    <div class="detail-grid">
+        <div class="box" id="size-guide">
+            <h3>헬멧 사이즈 안내</h3>
+            <div class="size-img">[헬멧 사이즈 표 이미지]</div>
+        </div>
+        <div class="box">
+            <h3>유니폼 실측 사이즈</h3>
+            <div class="size-img">[유니폼 실측 표 이미지]</div>
+        </div>
+
+        <div class="box" id="product-desc">
+            <h3>상세 설명</h3>
+            <p>야구 입문자를 위한 기본 장비 세트입니다. 안정적인 글러브와 가벼운 알루미늄 배트로 누구나 쉽게 시작할 수 있습니다.</p>
+            <ul style="line-height: 1.6; padding-left: 20px;">
+                <li>야구공: 실제 경기 규격 하드볼/연식구 선택 가능</li>
+                <li>야구 배트: 초보자용 경량 알루미늄 소재</li>
+                <li>야구 글러브: 길들이기가 쉬운 연질 합섬피혁</li>
+            </ul>
+        </div>
+        <div class="box">
+            <h3>공지사항</h3>
+            <ul style="line-height: 1.6; color: #000; padding-left: 20px;">
+                <li>구성품은 재고에 따라 변경될 수 있습니다.</li>
+                <li>이미지는 참고용입니다.</li>
+            </ul>
+        </div>
+
+        <div class="box large" id="product-detail">
+            <h3>디테일 뷰</h3>
+            <div class="size-img" style="height: 400px; display: flex; align-items: center; justify-content: center;">
+                [제품 상세 고해상도 이미지 영역]
+            </div>
+        </div>
+
+        <div class="box large" id="shipping-info">
+            <h3>배송 / 환불 안내</h3>
+            <ul style="line-height: 2;">
+                <li><b>배송비</b>: 3,000원 (50,000원 이상 구매 시 무료 배송)</li>
+                <li><b>배송일</b>: 평일 오후 2시 이전 결제 시 당일 출고</li>
+                <li><b>교환/반품</b>: 수령 후 7일 이내 신청 가능</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<div id="footer-container"></div>
+    
+<script>
+    // loadLayout, updateLoginStatus, handleLogout → common.js에서 담당
+    document.addEventListener('DOMContentLoaded', loadLayout);
+
+    function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function scrollToSection(id) {
+        const el = document.getElementById(id);
+        const offset = el.getBoundingClientRect().top + window.pageYOffset - 120;
+        window.scrollTo({ top: offset, behavior: 'smooth' });
+    }
+
+    const topBtn = document.getElementById("scrollTopBtn");
+    window.onscroll = function() {
+        if (window.scrollY > 300) topBtn.classList.add("show");
+        else topBtn.classList.remove("show");
+    };
+
+    let cart = JSON.parse(sessionStorage.getItem('Cart')) || [];
+    window.onload = function() { renderCart(); };
+
+    function toggleCart() {
+        const sb = document.getElementById('cartSidebar');
+        const ov = document.getElementById('cartOverlay');
+        sb.classList.toggle('open');
+        ov.style.display = sb.classList.contains('open') ? 'block' : 'none';
+    }
+
+    function addToCart() {
+        const included = document.querySelectorAll('.item .included');
+        if (included.length < 3) { alert("최소 3개 이상의 구성품을 선택해야 합니다."); return; }
+
+        let kitOptions = [];
+        let kitPrice = 0;
+        let fail = false;
+
+        included.forEach(btn => {
+            const item = btn.closest('.item');
+            const name = item.querySelector('span').innerText;
+            const price = parseInt(item.dataset.price);
+            const select = item.querySelector('select');
+            
+            kitPrice += price;
+            if (select) {
+                if (select.value === "미선택") { alert(`${name} 사이즈를 골라주세요!`); fail = true; return; }
+                kitOptions.push(`${name}(${select.value})`);
+            } else { kitOptions.push(name); }
+        });
+
+        if (fail) return;
+
+        cart.push({ id: Date.now(), name: "야구 입문 키트", options: kitOptions.join(", "), price: kitPrice, qty: 1 });
+        sessionStorage.setItem('Cart', JSON.stringify(cart));
+        renderCart();
+        toggleCart();
+    }
+
+    function renderCart() {
+        const container = document.getElementById('cartItems');
+        container.innerHTML = '';
+        let total = 0;
+
+        if(cart.length === 0) {
+            container.innerHTML = '<div style="text-align:center; padding:100px 0; color:#ccc;">비어있음</div>';
+        } else {
+            cart.forEach((item, idx) => {
+                total += (item.price * item.qty);
+                const row = document.createElement('div');
+                row.className = 'c-item';
+                row.innerHTML = `
+                    <div style="flex:1">
+                        <div class="c-item-name">${item.name}</div>
+                        <div style="font-size:11px; color:#666">${item.options}</div>
+                        <div style="font-weight:900; margin-top:5px;">${item.price.toLocaleString()}원</div>
+                    </div>
+                    <div style="cursor:pointer; font-weight:900" onclick="deleteItem(${idx})">×</div>
+                `;
+                container.appendChild(row);
+            });
+        }
+        document.getElementById('cTotalAmt').innerText = total.toLocaleString() + "원";
+    }
+
+    function deleteItem(idx) {
+        cart.splice(idx, 1);
+        sessionStorage.setItem('Cart', JSON.stringify(cart));
+        renderCart();
+    }
+
+    const totalEl = document.getElementById("total");
+    let currentTotal = 115000;
+
+    document.querySelectorAll(".toggle").forEach(btn => {
+        btn.onclick = function() {
+            const item = this.closest(".item");
+            const price = Number(item.dataset.price);
+            const img = document.getElementById(item.dataset.name);
+
+            if (this.classList.contains("included")) {
+                if (document.querySelectorAll(".included").length <= 3) { alert("최소 3개가 필요합니다."); return; }
+                this.classList.remove("included");
+                this.innerText = "포함";
+                currentTotal -= price;
+                if(img) img.style.opacity = "0.1";
+            } else {
+                this.classList.add("included");
+                this.innerText = "제거";
+                currentTotal += price;
+                if(img) img.style.opacity = "1";
+            }
+            totalEl.innerText = currentTotal.toLocaleString();
+        }
+    });
+</script>
+</body>
+</html>

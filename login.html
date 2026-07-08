@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>READY PLAY - LOGIN</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        /* 기존 스타일 유지 (수정 없음) */
+        body { margin: 0; background-color: #ffffff; font-family: 'Pretendard', sans-serif; padding-top: 100px; }
+        .main-wrapper { display: flex; justify-content: center; align-items: center; min-height: calc(100vh - 150px); padding: 50px 20px; box-sizing: border-box; }
+        .login-container { width: 100%; max-width: 400px; background-color: #ffffff; padding: 40px; border: 5px solid #000; box-shadow: 15px 15px 0px #000; text-align: center; }
+        h1 { font-size: 55px; font-weight: 900; margin-bottom: 35px; text-transform: uppercase; letter-spacing: -3px; line-height: 0.9; }
+        .input-field { width: 100%; height: 60px; margin-bottom: 15px; padding: 0 15px; font-size: 18px; font-weight: 700; border: 4px solid #000; box-sizing: border-box; outline: none; }
+        .input-field:focus { background-color: #000; color: #fff; }
+        .login-btn { width: 100%; height: 65px; font-size: 22px; font-weight: 900; border: 4px solid #000; cursor: pointer; background-color: #000; color: #fff; margin-bottom: 15px; }
+        .find-links { display: flex; justify-content: center; gap: 25px; font-size: 14px; margin: 10px 0 25px 0; font-weight: 800; }
+        .find-links a { color: #000; text-decoration: none; border-bottom: 3px solid #000; }
+        .social-login { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 20px 0; }
+        .social-icon { height: 50px; display: flex; justify-content: center; align-items: center; text-decoration: none; color: #000; font-weight: 900; border: 3px solid #000; background: #fff; }
+        .non-member-btn { width: 100%; height: 45px; font-size: 14px; font-weight: 700; border: 3px solid #000; background: #eee; margin-bottom: 35px; cursor: pointer; }
+        .benefit-box { background: #D4ED00; padding: 20px; border: 4px solid #000; margin-bottom: 20px; text-align: left; }
+        .benefit-title { font-weight: 900; margin-bottom: 15px; font-size: 16px; text-transform: uppercase; }
+        .coupon-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+        .coupon-item { font-size: 10px; font-weight: 900; background: #fff; border: 2px solid #000; padding: 10px 2px; text-align: center; }
+        .signup-btn { width: 100%; height: 70px; background: #FF5A10; color: #fff; font-size: 24px; font-weight: 900; border: 4px solid #000; box-shadow: 8px 8px 0px #000; cursor: pointer; }
+
+        /* ── 비밀번호 찾기 모달 ── */
+        .modal-backdrop {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 3000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-backdrop.open { display: flex; }
+        .modal-box {
+            background: #fff;
+            border: 5px solid #000;
+            box-shadow: 12px 12px 0 #000;
+            padding: 40px;
+            width: 100%;
+            max-width: 380px;
+            box-sizing: border-box;
+            position: relative;
+        }
+        .modal-title { font-size: 22px; font-weight: 900; text-transform: uppercase; margin: 0 0 8px; }
+        .modal-desc  { font-size: 13px; color: #666; margin: 0 0 24px; line-height: 1.6; }
+        .modal-close {
+            position: absolute; top: 14px; right: 18px;
+            font-size: 22px; cursor: pointer; font-weight: 900;
+            background: none; border: none;
+        }
+        .modal-msg { font-size: 13px; margin-top: 12px; font-weight: 700; min-height: 18px; }
+        .modal-msg.success { color: #0a0; }
+        .modal-msg.error   { color: #f00; }
+    </style>
+</head>
+<body>
+
+    <div id="header-container"></div>
+
+    <div class="main-wrapper">
+        <div class="login-container">
+            <h1>LOGIN</h1>
+
+            <form id="loginForm">
+                <input type="email" placeholder="EMAIL" class="input-field" id="userId" required>
+                <input type="password" placeholder="PASSWORD" class="input-field" id="userPw" required>
+                <button type="submit" class="login-btn" id="loginSubmit">ENTER</button>
+            </form>
+
+            <div class="find-links">
+                <a href="#">FIND ID</a>
+                <a href="#" onclick="openFindPwModal(); return false;">FIND PW</a>
+            </div>
+
+            <!-- 비밀번호 찾기 모달 -->
+            <div class="modal-backdrop" id="findPwModal">
+                <div class="modal-box">
+                    <button class="modal-close" onclick="closeFindPwModal()">✕</button>
+                    <h2 class="modal-title">비밀번호 찾기</h2>
+                    <p class="modal-desc">
+                        가입하신 이메일 주소를 입력하시면<br>
+                        비밀번호 재설정 링크를 보내드립니다.
+                    </p>
+                    <input type="email" class="input-field" id="resetEmail" placeholder="EMAIL 입력" style="margin-bottom:12px;">
+                    <button class="login-btn" id="sendResetBtn" onclick="sendResetEmail()" style="height:54px; font-size:16px;">
+                        재설정 링크 전송
+                    </button>
+                    <div class="modal-msg" id="resetMsg"></div>
+                </div>
+            </div>
+
+            <div class="social-login">
+                <a href="#" class="social-icon">K</a>
+                <a href="#" class="social-icon">N</a>
+                <a href="#" class="social-icon">F</a>
+                <a href="#" class="social-icon">A</a>
+            </div>
+
+            <button class="non-member-btn" type="button">비회원 주문 조회</button>
+
+            <div class="benefit-box">
+                <p class="benefit-title">MEMBERSHIP PRIVILEGE</p>
+                <div class="coupon-grid">
+                    <div class="coupon-item">3,000<br>WON</div>
+                    <div class="coupon-item">10%<br>OFF</div>
+                    <div class="coupon-item">15%<br>BDAY</div>
+                    <div class="coupon-item">SPECIAL<br>GIFT</div>
+                </div>
+            </div>
+
+            <button class="signup-btn" type="button" onclick="location.href='signup.html'">JOIN NOW</button>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+<script>
+    // 1. Supabase 초기화 (회원가입 페이지와 동일한 Key 사용)
+    // common.js의 getSupabase() 사용 (URL/KEY 중복 제거)
+    const supabaseClient = getSupabase();
+
+    // 2. 로그인 로직 (Supabase 연동)
+    document.getElementById('loginForm').addEventListener('submit', async function(event) {
+        event.preventDefault(); 
+        const email = document.getElementById('userId').value;
+        const password = document.getElementById('userPw').value;
+        const submitBtn = document.getElementById('loginSubmit');
+
+        submitBtn.disabled = true;
+        submitBtn.innerText = 'WAIT...';
+
+        try {
+            // A. Supabase Auth로 로그인 시도
+            const { data, error } = await supabaseClient.auth.signInWithPassword({
+                email: email,
+                password: password,
+            });
+
+            if (error) throw error;
+
+            // B. 로그인 성공 시 사용자 이름 + 역할(Profiles 테이블) 가져오기
+            const { data: profile, error: profileError } = await supabaseClient
+                .from('profiles')
+                .select('name, role')
+                .eq('id', data.user.id)
+                .single();
+
+            const userName = profile ? profile.name : '고객';
+            const userRole = (profile && profile.role) ? profile.role : 'member';
+
+            // C. 세션 스토리지 저장 (기존 시스템 유지)
+            sessionStorage.setItem('isLoggedIn', 'true');
+            sessionStorage.setItem('userName', userName);
+            sessionStorage.setItem('readyplayUser', JSON.stringify({
+                isLoggedIn: true,
+                userName: userName,
+                userRole: userRole   // 'member' 또는 'admin'
+            }));
+            
+            alert(`${userName}님, 환영합니다! READY PLAY!`);
+            location.href = 'index.html'; 
+
+        } catch (error) {
+            alert("🚨 로그인 실패: " + error.message);
+        } finally {
+            submitBtn.disabled = false;
+            submitBtn.innerText = 'ENTER';
+        }
+    });
+
+    // ── 비밀번호 찾기 모달 ──
+    function openFindPwModal() {
+        document.getElementById('findPwModal').classList.add('open');
+        document.getElementById('resetMsg').textContent = '';
+        document.getElementById('resetEmail').value = '';
+    }
+    function closeFindPwModal() {
+        document.getElementById('findPwModal').classList.remove('open');
+    }
+    // 모달 바깥 클릭 시 닫기
+    document.getElementById('findPwModal').addEventListener('click', function(e) {
+        if (e.target === this) closeFindPwModal();
+    });
+
+    async function sendResetEmail() {
+        const email = document.getElementById('resetEmail').value.trim();
+        const msgEl  = document.getElementById('resetMsg');
+        const btn    = document.getElementById('sendResetBtn');
+
+        if (!email) { msgEl.textContent = '이메일을 입력해주세요.'; msgEl.className = 'modal-msg error'; return; }
+
+        btn.disabled = true;
+        btn.textContent = '전송 중...';
+        msgEl.textContent = '';
+
+        try {
+            // 현재 페이지 기준으로 reset-password.html 경로 자동 계산
+            const origin    = window.location.href.replace(/\/[^/]*$/, '');
+            const redirectTo = origin + '/reset-password.html';
+
+            const { error } = await supabaseClient.auth.resetPasswordForEmail(email, { redirectTo });
+
+            if (error) throw error;
+
+            msgEl.textContent = '✅ 이메일이 전송됐어요! 받은 편지함을 확인해주세요.';
+            msgEl.className   = 'modal-msg success';
+        } catch (err) {
+            msgEl.textContent = '❌ 오류: ' + err.message;
+            msgEl.className   = 'modal-msg error';
+        } finally {
+            btn.disabled    = false;
+            btn.textContent = '재설정 링크 전송';
+        }
+    }
+
+    // updateLoginStatus, handleLogout → common.js에서 담당
+    document.addEventListener('DOMContentLoaded', loadLayout);
+</script>
+</body>
+</html>

@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>찜 목록 - Ready Play!</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        /* 네오 브루탈리즘 스타일 정의 */
+        body {
+            font-family: 'Pretendard', -apple-system, sans-serif;
+            background-color: #fff;
+            margin: 0;
+            /* padding-top: common.css에서 통일 */
+            box-sizing: border-box; 
+            min-height: 100vh; 
+        }
+        .full-container { 
+            width: 100%; 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            padding: 50px 20px 200px 20px; 
+            min-height: 600px; 
+        }
+        h1 { font-size: 32px; font-weight: 800; margin-bottom: 30px; text-transform: uppercase; }
+
+        .total-info { 
+            font-size: 20px; 
+            font-weight: bold; 
+            margin-bottom: 15px; 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: flex-end; 
+            border-bottom: 4px solid #000;
+            padding-bottom: 10px;
+        }
+        .control-btns { display: flex; gap: 10px; }
+        .btn-sm { 
+            padding: 8px 15px; 
+            font-size: 14px; 
+            background: #fff; 
+            border: 3px solid #000; 
+            font-weight: bold; 
+            cursor: pointer; 
+            box-shadow: 3px 3px 0px #000; 
+            transition: 0.1s;
+        }
+        .btn-sm:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px #000; }
+        .btn-black { background: #000; color: #fff; }
+
+        .header-row { 
+            display: grid; 
+            grid-template-columns: 60px 120px 2fr 1fr 1fr 120px; 
+            align-items: center; 
+            border: 4px solid #000; 
+            background-color: #000; 
+            color: #fff; 
+            padding: 15px 20px; 
+            font-weight: bold; 
+            text-align: center; 
+            margin-bottom: 20px; 
+        }
+
+        .item-list { display: flex; flex-direction: column; gap: 20px; }
+        .item-row { 
+            display: grid; 
+            grid-template-columns: 60px 120px 2fr 1fr 1fr 120px; 
+            align-items: center; 
+            border: 4px solid #000; 
+            padding: 20px; 
+            background-color: #fff; 
+            transition: transform 0.2s; 
+        }
+        .item-row:hover { transform: translate(-4px, -4px); box-shadow: 12px 12px 0px #000; }
+
+        .checkbox-wrapper { display: flex; justify-content: center; }
+        .checkbox-wrapper input { width: 25px; height: 25px; accent-color: #000; cursor: pointer; }
+
+        .image-box { 
+            width: 100px; height: 100px; border: 3px solid #000; 
+            background-color: #f0f0f0; overflow: hidden;
+            display: flex; justify-content: center; align-items: center; 
+        }
+        .image-box img { width: 100%; height: 100%; object-fit: cover; }
+
+        .info-col { padding: 0 30px; font-size: 18px; font-weight: bold; line-height: 1.5; }
+        .center-col, .price-col { text-align: center; font-size: 20px; font-weight: bold; }
+
+        .delete-btn { 
+            background-color: #959595; color: white; border: 3px solid #000; 
+            padding: 10px 15px; font-weight: bold; cursor: pointer; 
+            box-shadow: 4px 4px 0px #000; transition: 0.1s; 
+        }
+        .delete-btn:active { transform: translate(2px, 2px); box-shadow: 2px 2px 0px #000; }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<div class="full-container">
+    <h1>Wishlist</h1>
+    
+    <div class="total-info">
+        <span id="total-info">총 0건의 상품이 담겨있습니다.</span>
+        <div class="control-btns">
+            <button class="btn-sm btn-black" onclick="moveToCart()">선택 상품 장바구니 담기</button>
+            <button class="btn-sm" onclick="deleteSelected()">선택 삭제</button>
+            <button class="btn-sm" onclick="clearWishlist()">찜 목록 비우기</button>
+        </div>
+    </div>
+
+    <div class="header-row">
+        <div class="checkbox-wrapper"><input type="checkbox" id="selectAll" onclick="toggleAll(this)"></div>
+        <div>이미지</div>
+        <div>상품 정보</div>
+        <div>수량</div>
+        <div>가격</div>
+        <div>관리</div>
+    </div>
+
+    <div id="item-list" class="item-list"></div>
+</div>
+
+<div id="footer-container"></div>
+
+<script>
+    // common.js의 getSupabase() 사용 (URL/KEY 중복 제거)
+    // loadLayout, updateLoginStatus, handleLogout → common.js에서 담당
+    const supabaseClient = getSupabase();
+
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadLayout();  // 헤더+푸터 로드 + 로그인 상태 반영
+        renderWishlist();
+    });
+
+    function renderWishlist() {
+        const itemListContainer = document.getElementById('item-list');
+        const totalInfo = document.getElementById('total-info');
+        const selectAllBtn = document.getElementById('selectAll');
+        
+        let wishlist = JSON.parse(sessionStorage.getItem('Wishlist')) || [];
+        totalInfo.innerText = `총 ${wishlist.length}건의 상품이 담겨있습니다.`;
+        itemListContainer.innerHTML = '';
+        selectAllBtn.checked = false; 
+
+        if (wishlist.length === 0) {
+            itemListContainer.innerHTML = `
+                <div style="border:4px solid #000; padding:100px; text-align:center; font-weight:bold; box-shadow:8px 8px 0px #000; font-size:20px;">
+                    찜 목록이 비어있습니다.
+                </div>`;
+            return;
+        }
+
+        wishlist.forEach((item, index) => {
+            const row = document.createElement('div');
+            row.className = 'item-row';
+            const imgHtml = item.img ? `<img src="${item.img}" alt="${item.name}">` : 'NO IMG';
+            
+            row.innerHTML = `
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" class="item-check" data-index="${index}">
+                </div>
+                <div class="image-box">${imgHtml}</div>
+                <div class="info-col">
+                    <strong>${item.name}</strong><br>
+                    <span style="font-size: 14px; color: #666;">${item.options}</span>
+                </div>
+                <div class="center-col">1세트</div>
+                <div class="price-col">${item.price}</div>
+                <div style="text-align: center;">
+                    <button class="delete-btn" onclick="deleteWishItem(${index})">삭제</button>
+                </div>
+            `;
+            itemListContainer.appendChild(row);
+        });
+    }
+
+    function moveToCart() {
+        const checkboxes = document.querySelectorAll('.item-check:checked');
+        if (checkboxes.length === 0) return alert("장바구니에 담을 상품을 선택해주세요.");
+
+        let wishlist = JSON.parse(sessionStorage.getItem('Wishlist')) || [];
+        let cart = JSON.parse(sessionStorage.getItem('Cart')) || [];
+
+        checkboxes.forEach(cb => {
+            const index = cb.dataset.index;
+            const item = wishlist[index];
+
+            const cartItem = {
+                name: item.name,
+                options: item.options || "기본",
+                price: typeof item.price === 'string' 
+                       ? parseInt(item.price.replace(/[^0-9]/g, "")) 
+                       : item.price,
+                img: item.img,
+                qty: 1,      
+                checked: true
+            };
+
+            const existingIndex = cart.findIndex(c => c.name === cartItem.name && c.options === cartItem.options);
+            if (existingIndex > -1) {
+                cart[existingIndex].qty += 1;
+            } else {
+                cart.push(cartItem);
+            }
+        });
+
+        sessionStorage.setItem('Cart', JSON.stringify(cart));
+        
+        if(confirm("선택한 상품이 장바구니에 담겼습니다.\n장바구니로 이동하시겠습니까?")) {
+            location.href = 'cart.html';
+        }
+    }
+
+    function deleteWishItem(index) {
+        let wishlist = JSON.parse(sessionStorage.getItem('Wishlist')) || [];
+        wishlist.splice(index, 1);
+        sessionStorage.setItem('Wishlist', JSON.stringify(wishlist));
+        renderWishlist();
+    }
+
+    function toggleAll(master) {
+        const checkboxes = document.querySelectorAll('.item-check');
+        checkboxes.forEach(cb => cb.checked = master.checked);
+    }
+
+    function deleteSelected() {
+        const checkboxes = document.querySelectorAll('.item-check:checked');
+        if (checkboxes.length === 0) return alert("삭제할 상품을 선택해주세요.");
+        
+        if (confirm(`${checkboxes.length}개의 상품을 삭제하시겠습니까?`)) {
+            let wishlist = JSON.parse(sessionStorage.getItem('Wishlist')) || [];
+            const indicesToRemove = Array.from(checkboxes)
+                .map(cb => parseInt(cb.dataset.index))
+                .sort((a, b) => b - a);
+            indicesToRemove.forEach(index => wishlist.splice(index, 1));
+            sessionStorage.setItem('Wishlist', JSON.stringify(wishlist));
+            renderWishlist();
+        }
+    }
+
+    function clearWishlist() {
+        if (confirm("찜 목록을 모두 비우시겠습니까?")) {
+            sessionStorage.removeItem('Wishlist');
+            renderWishlist();
+        }
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>READY PLAY! - COMMUNITY</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        body { font-family: 'Arial Black', sans-serif; background: #f0f0f0; margin: 0; }
+
+        .page-wrap {
+            max-width: 900px;
+            margin: 60px auto;
+            padding: 0 20px 100px;
+        }
+
+        /* ── 페이지 헤더 ── */
+        .board-header {
+            background: #000;
+            color: #fff;
+            padding: 30px 36px;
+            border: 4px solid #000;
+            box-shadow: 10px 10px 0 #000;
+            margin-bottom: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .board-header h1 { margin: 0; font-size: 36px; text-transform: uppercase; letter-spacing: -1px; }
+        .board-header p  { margin: 6px 0 0; font-size: 13px; opacity: 0.6; font-family: sans-serif; }
+
+        /* ── 말머리 필터 ── */
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            padding: 16px 20px;
+            background: #fff;
+            border: 4px solid #000;
+            border-top: none;
+        }
+        .filter-chip {
+            padding: 6px 16px;
+            border: 2px solid #000;
+            background: #fff;
+            font-weight: 900;
+            font-size: 12px;
+            cursor: pointer;
+            transition: 0.1s;
+            font-family: inherit;
+            text-transform: uppercase;
+            box-shadow: 2px 2px 0 #000;
+        }
+        .filter-chip:hover   { background: #000; color: #fff; }
+        .filter-chip.active  { background: #D4ED00; color: #000; border-color: #000; }
+        .filter-chip:active  { transform: translate(2px,2px); box-shadow: none; }
+
+        /* ── 게시글 목록 테이블 ── */
+        .board-body {
+            background: #fff;
+            border: 4px solid #000;
+            border-top: none;
+            box-shadow: 10px 10px 0 #000;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: #f5f5f5; border-bottom: 3px solid #000; }
+        th { padding: 14px 12px; font-size: 12px; font-weight: 900; text-align: center;
+             letter-spacing: 0.05em; text-transform: uppercase; }
+        td { padding: 14px 12px; font-size: 13px; font-weight: 700;
+             border-bottom: 1px solid #eee; text-align: center; vertical-align: middle; }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fffef0; }
+
+        .td-title {
+            text-align: left;
+            max-width: 340px;
+        }
+        .post-title-link {
+            cursor: pointer;
+            font-weight: 900;
+            font-size: 14px;
+        }
+        .post-title-link:hover { text-decoration: underline; text-decoration-color: #D4ED00; }
+
+        /* 말머리 뱃지 */
+        .tag {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 900;
+            border: 2px solid #000;
+            margin-right: 6px;
+            vertical-align: middle;
+            text-transform: uppercase;
+            background: #D4ED00;
+        }
+        .tag.자유   { background: #eee; }
+        .tag.축구   { background: #b6f5b6; }
+        .tag.야구   { background: #ffd6b0; }
+        .tag.농구   { background: #ffe0b0; }
+        .tag.배구   { background: #b0d8ff; }
+        .tag.러닝   { background: #e0b0ff; }
+        .tag.헬스   { background: #ffb0b0; }
+        .tag.리뷰   { background: #D4ED00; }
+        .tag.질문   { background: #fff0b0; }
+
+        .secret-icon { font-size: 12px; margin-left: 4px; }
+
+        /* 빈 목록 */
+        .empty-row td { text-align: center; padding: 60px; color: #aaa; font-size: 16px; }
+
+        /* ── 하단 바 (페이지네이션 + 글쓰기) ── */
+        .board-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border: 4px solid #000;
+            border-top: 2px solid #000;
+            background: #fff;
+            box-shadow: 10px 10px 0 #000;
+            margin-top: -1px;
+        }
+        .pagination { display: flex; gap: 6px; }
+        .page-btn {
+            width: 34px; height: 34px;
+            border: 2px solid #000;
+            background: #fff;
+            font-weight: 900; font-size: 13px;
+            cursor: pointer; font-family: inherit;
+            box-shadow: 2px 2px 0 #000;
+            transition: 0.1s;
+        }
+        .page-btn:hover  { background: #000; color: #fff; }
+        .page-btn.active { background: #D4ED00; color: #000; border-color: #000; }
+        .page-btn:active { transform: translate(1px,1px); box-shadow: none; }
+
+        .write-btn {
+            padding: 10px 24px;
+            background: #000; color: #fff;
+            border: 3px solid #000;
+            font-weight: 900; font-size: 14px;
+            cursor: pointer; font-family: inherit;
+            box-shadow: 4px 4px 0 #555;
+            transition: 0.1s; text-transform: uppercase;
+        }
+        .write-btn:hover  { background: #D4ED00; color: #000; }
+        .write-btn:active { transform: translate(3px,3px); box-shadow: none; }
+
+        /* 로딩 */
+        .loading { text-align: center; padding: 60px; color: #aaa; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<div class="page-wrap">
+
+    <!-- 타이틀 -->
+    <div class="board-header">
+        <div>
+            <h1>Community</h1>
+            <p>스포츠 이야기, 후기, 질문 무엇이든 올려보세요</p>
+        </div>
+    </div>
+
+    <!-- 말머리 필터 -->
+    <div class="filter-bar" id="filterBar">
+        <button class="filter-chip active" onclick="setFilter('전체', this)">전체</button>
+        <button class="filter-chip" onclick="setFilter('자유', this)">자유</button>
+        <button class="filter-chip" onclick="setFilter('축구', this)">⚽ 축구</button>
+        <button class="filter-chip" onclick="setFilter('야구', this)">⚾ 야구</button>
+        <button class="filter-chip" onclick="setFilter('농구', this)">🏀 농구</button>
+        <button class="filter-chip" onclick="setFilter('배구', this)">🏐 배구</button>
+        <button class="filter-chip" onclick="setFilter('러닝', this)">🏃 러닝</button>
+        <button class="filter-chip" onclick="setFilter('헬스', this)">💪 헬스</button>
+        <button class="filter-chip" onclick="setFilter('리뷰', this)">⭐ 리뷰</button>
+        <button class="filter-chip" onclick="setFilter('질문', this)">❓ 질문</button>
+    </div>
+
+    <!-- 게시글 목록 -->
+    <div class="board-body">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:50px">NO</th>
+                    <th style="width:70px">말머리</th>
+                    <th>제목</th>
+                    <th style="width:90px">작성자</th>
+                    <th style="width:85px">날짜</th>
+                    <th style="width:55px">조회</th>
+                    <th style="width:55px">댓글</th>
+                </tr>
+            </thead>
+            <tbody id="postTableBody">
+                <tr><td colspan="7" class="loading">불러오는 중...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 하단: 페이지네이션 + 글쓰기 버튼 -->
+    <div class="board-foot">
+        <div class="pagination" id="pagination"></div>
+        <button class="write-btn" onclick="goWrite()">✏ 글쓰기</button>
+    </div>
+
+</div>
+
+<div id="footer-container"></div>
+
+<script>
+    const sb = getSupabase();
+    const PAGE_SIZE = 15;   // 한 페이지당 게시글 수
+    let currentPage   = 1;
+    let currentFilter = '전체';
+    let totalCount    = 0;
+
+    // ────────────────────────────────────────────────────────
+    //  초기화
+    // ────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadLayout();
+        loadPosts();
+    });
+
+    // ────────────────────────────────────────────────────────
+    //  말머리 필터 변경
+    // ────────────────────────────────────────────────────────
+    function setFilter(category, btn) {
+        currentFilter = category;
+        currentPage   = 1;
+        // 버튼 active 상태 변경
+        document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        loadPosts();
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  게시글 목록 불러오기
+    // ────────────────────────────────────────────────────────
+    async function loadPosts() {
+        const tbody = document.getElementById('postTableBody');
+        tbody.innerHTML = '<tr><td colspan="7" class="loading">불러오는 중...</td></tr>';
+
+        try {
+            // 총 개수 쿼리 (공지 제외 + 페이지네이션용)
+            let countQuery = sb.from('posts')
+                .select('id', { count: 'exact', head: true })
+                .neq('category', '공지');   // 공지는 커뮤니티에서 제외
+            if (currentFilter !== '전체') countQuery = countQuery.eq('category', currentFilter);
+            const { count } = await countQuery;
+            totalCount = count || 0;
+
+            // 실제 데이터 쿼리
+            const from = (currentPage - 1) * PAGE_SIZE;
+            const to   = from + PAGE_SIZE - 1;
+
+            let query = sb.from('posts')
+                .select(`
+                    id, title, category, is_secret, author_name,
+                    created_at, view_count, user_id,
+                    post_comments(count)
+                `)
+                .neq('category', '공지')   // 공지는 커뮤니티에서 제외
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            if (currentFilter !== '전체') query = query.eq('category', currentFilter);
+
+            const { data: posts, error } = await query;
+            if (error) throw error;
+
+            renderPosts(posts || []);
+            renderPagination();
+
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="7" class="loading">❌ 불러오기 실패: ${err.message}</td></tr>`;
+        }
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  게시글 목록 렌더링
+    // ────────────────────────────────────────────────────────
+    function renderPosts(posts) {
+        const tbody = document.getElementById('postTableBody');
+        if (posts.length === 0) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="7">📝 아직 게시글이 없습니다.<br>첫 번째 글을 남겨보세요!</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = posts.map((p, idx) => {
+            const no       = totalCount - ((currentPage - 1) * PAGE_SIZE) - idx;
+            const date     = p.created_at ? p.created_at.slice(0, 10) : '';
+            const commentCount = p.post_comments?.[0]?.count ?? 0;
+            // 비밀글 아이콘
+            const secretIcon = p.is_secret ? '<span class="secret-icon" title="비밀글">🔒</span>' : '';
+            // 댓글수 표시
+            const cmtBadge = commentCount > 0
+                ? `<span style="color:#FF5A10; font-size:11px; font-weight:900;"> [${commentCount}]</span>`
+                : '';
+
+            return `
+                <tr onclick="goDetail('${p.id}')" style="cursor:pointer;">
+                    <td>${no}</td>
+                    <td><span class="tag ${p.category}">${p.category}</span></td>
+                    <td class="td-title">
+                        <span class="post-title-link">
+                            ${secretIcon}${escHtml(p.title)}${cmtBadge}
+                        </span>
+                    </td>
+                    <td>${escHtml(p.author_name || '익명')}</td>
+                    <td style="font-size:12px; font-family:sans-serif;">${date}</td>
+                    <td style="font-size:12px;">${p.view_count || 0}</td>
+                    <td style="font-size:12px;">${commentCount}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  페이지네이션 렌더링
+    // ────────────────────────────────────────────────────────
+    function renderPagination() {
+        const container  = document.getElementById('pagination');
+        const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        let html = '';
+        // 이전 버튼
+        if (currentPage > 1) html += `<button class="page-btn" onclick="goPage(${currentPage - 1})">‹</button>`;
+        // 페이지 번호 (최대 5개)
+        const start = Math.max(1, currentPage - 2);
+        const end   = Math.min(totalPages, start + 4);
+        for (let i = start; i <= end; i++) {
+            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+        }
+        // 다음 버튼
+        if (currentPage < totalPages) html += `<button class="page-btn" onclick="goPage(${currentPage + 1})">›</button>`;
+
+        container.innerHTML = html;
+    }
+
+    function goPage(page) {
+        currentPage = page;
+        loadPosts();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  페이지 이동
+    // ────────────────────────────────────────────────────────
+    function goDetail(postId) {
+        location.href = `post-detail.html?id=${postId}`;
+    }
+
+    function goWrite() {
+        const user = JSON.parse(sessionStorage.getItem('readyplayUser') || '{}');
+        if (!user.isLoggedIn) {
+            alert('로그인 후 글을 쓸 수 있습니다.');
+            location.href = 'login.html';
+            return;
+        }
+        location.href = 'write-post.html';
+    }
+
+    // XSS 방지: HTML 특수문자 이스케이프
+    function escHtml(str) {
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+</script>
+</body>
+</html>

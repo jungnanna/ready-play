@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ready Play! - Cart</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        /* [기존 스타일 유지 및 레이아웃 조정] */
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --shadow: 10px 10px 0px #000;
+        }
+
+        body { 
+            margin: 0; 
+            font-family: 'Arial Black', sans-serif; 
+            background-color: #f0f0f0; 
+            color: #000; 
+            padding-top: 120px; 
+        }
+
+        .container { max-width: 1100px; margin: 0 auto; padding: 20px; padding-bottom: 350px; }
+        .page-title { text-align: center; font-size: 45px; font-weight: 900; margin-bottom: 50px; text-transform: uppercase; }
+        .cart-content { display: flex; gap: 40px; align-items: flex-start; }
+        .item-list-area { flex: 2; display: flex; flex-direction: column; gap: 20px; }
+        .summary-area { flex: 1; position: sticky; top: 120px; display: flex; flex-direction: column; gap: 20px; }
+        
+        .cart-item { display: flex; background: #fff; border: 4px solid #000; padding: 20px; gap: 20px; position: relative; box-shadow: 8px 8px 0px rgba(0,0,0,1); align-items: center; }
+        
+        /* 이미지 박스 수정: 이미지가 꽉 차도록 설정 */
+        .item-img-box { 
+            width: 150px; 
+            height: 150px; 
+            background: #fff; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            border: 2px solid #000; 
+            overflow: hidden; 
+        }
+        .item-img-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain; /* 이미지 비율 유지 */
+        }
+
+        .item-info { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
+        .info-label { font-size: 18px; font-weight: 900; }
+        .qty-control { display: flex; align-items: center; gap: 15px; }
+        .qty-btn { background: #fff; border: 2px solid #000; font-weight: 900; cursor: pointer; width: 32px; height: 32px; font-size: 18px; box-shadow: 2px 2px 0px #000; }
+        .qty-btn:active { transform: translate(1px, 1px); box-shadow: 0px 0px 0px; }
+        .item-delete { position: absolute; top: 15px; right: 15px; font-size: 25px; font-weight: 900; cursor: pointer; }
+        
+        .price-info-box { padding: 20px; background: #fff; border: 4px solid #000; box-shadow: 8px 8px 0px #000; display: flex; flex-direction: column; gap: 15px; }
+        .price-row { display: flex; justify-content: space-between; font-size: 18px; font-weight: 900; }
+        .price-row.total-row { margin-top: 10px; padding-top: 20px; border-top: 4px solid #000; font-size: 24px; color: #ff3e3e; }
+        
+        .order-btn { padding: 20px; border: 4px solid #000; background: #fff; color: #000; font-family: 'Arial Black', sans-serif; font-size: 20px; font-weight: 900; cursor: pointer; box-shadow: 6px 6px 0px #000; transition: 0.1s; }
+        .order-btn:active { transform: translate(3px, 3px); box-shadow: 0px 0px 0px; }
+        .order-btn.primary { background: #000; color: #fff; } 
+        
+        .empty-msg { text-align: center; padding: 100px 0; font-size: 20px; font-weight: 900; border: 4px dashed #ccc; background: #fff; width: 100%; }
+        .info-opt { font-size: 14px; font-weight: normal; color: #555; font-family: sans-serif; line-height: 1.4; margin-bottom: 5px; }
+
+        .check-container { margin-bottom: 15px; display: flex; align-items: center; gap: 10px; font-weight: 900; font-size: 18px; }
+        input[type="checkbox"] { width: 25px; height: 25px; cursor: pointer; accent-color: #000; }
+
+        @media (max-width: 850px) {
+            .cart-content { flex-direction: column; }
+            .summary-area { position: static; width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header-container"></div>
+
+    <div class="container">
+        <h1 class="page-title">Shopping Cart</h1>
+
+        <div class="check-container" id="allCheckControl" style="display:none;">
+            <input type="checkbox" id="selectAll" checked onclick="toggleAll(this.checked)">
+            <label for="selectAll">SELECT ALL</label>
+        </div>
+
+        <div class="cart-content">
+            <div class="item-list-area" id="itemList">
+                <div class="empty-msg">장바구니가 비어있습니다.</div>
+            </div>
+
+            <div class="summary-area">
+                <div class="price-info-box">
+                    <div class="price-row">
+                        <span>상품금액</span>
+                        <span id="orderAmt">0원</span>
+                    </div>
+                    <div class="price-row">
+                        <span>배송비</span>
+                        <span id="shipAmt">0원</span>
+                    </div>
+                    <div class="price-row">
+                        <span>할인금액</span>
+                        <span id="disAmt">0원</span>
+                    </div>
+                    <div class="price-row total-row">
+                        <span>결제금액</span>
+                        <span id="totalAmt">0원</span>
+                    </div>
+                </div>
+
+                <button class="order-btn" onclick="orderSelected()">선택 상품 주문</button>
+                <button class="order-btn primary" onclick="orderAll()">전체 상품 주문</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script>
+        // loadLayout, toggleMenu, checkLoginAndMove, updateLoginStatus, handleLogout → common.js에서 담당
+
+        let cart = JSON.parse(sessionStorage.getItem('Cart')) || [];
+
+        function renderMainCart() {
+            const list = document.getElementById('itemList');
+            const allCheckControl = document.getElementById('allCheckControl');
+            list.innerHTML = '';
+
+            if(cart.length === 0) {
+                list.innerHTML = '<div class="empty-msg">장바구니가 비어있습니다.</div>';
+                allCheckControl.style.display = 'none';
+            } else {
+                allCheckControl.style.display = 'flex';
+                cart.forEach((item, index) => {
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'cart-item';
+                    if (item.checked === undefined) item.checked = true;
+
+                    // 이미지 처리: 저장된 경로가 있으면 사용, 없으면 기본 텍스트 출력
+                    const displayImg = item.img ? `<img src="${item.img}" alt="상품이미지">` : 'ITEM';
+
+                    itemDiv.innerHTML = `
+                        <input type="checkbox" class="item-check" ${item.checked ? 'checked' : ''} onchange="toggleItem(${index})">
+                        <div class="item-img-box">${displayImg}</div>
+                        <div class="item-info">
+                            <div class="info-label">${item.name}</div>
+                            <div class="info-opt">옵션: ${item.options || "기본"}</div>
+                            <div class="info-label">₩ ${item.price.toLocaleString()}</div>
+                            <div class="qty-control">
+                                <button class="qty-btn" onclick="updateQty(${index}, -1)">-</button>
+                                <span class="qty-val">${item.qty}</span>
+                                <button class="qty-btn" onclick="updateQty(${index}, 1)">+</button>
+                            </div>
+                        </div>
+                        <div class="item-delete" onclick="removeItem(${index})">×</div>
+                    `;
+                    list.appendChild(itemDiv);
+                });
+            }
+            calcTotal();
+        }
+
+        function toggleItem(index) {
+            cart[index].checked = !cart[index].checked;
+            const allChecked = cart.every(item => item.checked);
+            document.getElementById('selectAll').checked = allChecked;
+            saveData();
+        }
+
+        function toggleAll(isChecked) {
+            cart.forEach(item => item.checked = isChecked);
+            saveData();
+        }
+
+        function updateQty(index, delta) {
+            if(cart[index].qty + delta < 1) return;
+            cart[index].qty += delta;
+            saveData();
+        }
+
+        function removeItem(index) {
+            if(confirm("상품을 삭제하시겠습니까?")) {
+                cart.splice(index, 1);
+                saveData();
+            }
+        }
+
+        function saveData() {
+            sessionStorage.setItem('Cart', JSON.stringify(cart));
+            renderMainCart();
+        }
+
+        function calcTotal() {
+            let sum = 0;
+            cart.filter(item => item.checked).forEach(item => {
+                sum += (item.price * item.qty);
+            });
+            const shipping = sum > 0 ? 3000 : 0;
+            const discount = Math.floor(sum * 0.05);
+
+            document.getElementById('orderAmt').innerText = sum.toLocaleString() + "원";
+            document.getElementById('shipAmt').innerText = shipping.toLocaleString() + "원";
+            document.getElementById('disAmt').innerText = "-" + discount.toLocaleString() + "원";
+            document.getElementById('totalAmt').innerText = (sum + shipping - discount).toLocaleString() + "원";
+        }
+
+        function orderSelected() {
+            const selectedItems = cart.filter(item => item.checked);
+            if (selectedItems.length === 0) { alert("주문할 상품을 선택해주세요."); return; }
+            sessionStorage.setItem('OrderTemp', JSON.stringify(selectedItems));
+            location.href = "orderform.html?basket_type=selected_buy&delvtype=A";
+        }
+
+        function orderAll() {
+            if (cart.length === 0) { alert("장바구니가 비어있습니다."); return; }
+            sessionStorage.setItem('OrderTemp', JSON.stringify(cart));
+            location.href = "orderform.html?basket_type=all_buy&delvtype=A";
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            loadLayout();       // common.js: 헤더+푸터 로드 + 로그인 상태 반영
+            renderMainCart();   // 장바구니 목록 렌더링
+        });
+    </script>
+</body>
+</html>

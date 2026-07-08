@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>READY PLAY! - 게시글</title>
+    <link href="https://cdn.quilljs.com/1.3.7/quill.snow.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        body { font-family: 'Arial Black', sans-serif; background: #f0f0f0; margin: 0; }
+
+        .page-wrap {
+            max-width: 860px;
+            margin: 60px auto;
+            padding: 0 20px 100px;
+        }
+
+        /* 뒤로가기 */
+        .back-link {
+            display: inline-block;
+            font-weight: 900; font-size: 13px;
+            color: #000; text-decoration: none;
+            border-bottom: 2px solid #000;
+            margin-bottom: 18px; cursor: pointer;
+        }
+        .back-link:hover { color: #FF5A10; border-color: #FF5A10; }
+
+        /* ── 게시글 카드 ── */
+        .post-card {
+            background: #fff;
+            border: 4px solid #000;
+            box-shadow: 10px 10px 0 #000;
+            margin-bottom: 24px;
+        }
+
+        /* 게시글 헤더 */
+        .post-head {
+            padding: 24px 30px 20px;
+            border-bottom: 3px solid #000;
+        }
+        .post-tag {
+            display: inline-block;
+            padding: 3px 12px;
+            font-size: 11px; font-weight: 900;
+            border: 2px solid #000;
+            background: #D4ED00;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .post-title {
+            font-size: 26px; font-weight: 900;
+            margin: 0 0 14px; line-height: 1.3;
+        }
+        .post-meta {
+            display: flex; gap: 20px;
+            font-size: 12px; color: #888;
+            font-family: sans-serif; font-weight: 600;
+            align-items: center; flex-wrap: wrap;
+        }
+        .post-meta span { display: flex; align-items: center; gap: 4px; }
+
+        /* 게시글 본문 */
+        .post-body {
+            padding: 30px;
+            min-height: 200px;
+            line-height: 1.8;
+            font-family: sans-serif;
+            font-size: 15px;
+            color: #222;
+        }
+        /* Quill 렌더링된 HTML 스타일 */
+        .post-body h1 { font-size: 22px; }
+        .post-body h2 { font-size: 19px; }
+        .post-body h3 { font-size: 17px; }
+        .post-body img { max-width: 100%; height: auto; }
+        .post-body a { color: #0066cc; }
+        .post-body ul, .post-body ol { padding-left: 20px; }
+
+        /* 첨부파일 */
+        .attach-section {
+            border-top: 2px dashed #ddd;
+            padding: 16px 30px;
+        }
+        .attach-title { font-size: 12px; font-weight: 900; color: #888; margin-bottom: 10px; text-transform: uppercase; }
+        .attach-file {
+            display: inline-flex; align-items: center; gap: 8px;
+            padding: 6px 14px;
+            border: 2px solid #000; background: #fff;
+            font-size: 13px; font-weight: 700;
+            text-decoration: none; color: #000;
+            margin: 4px; transition: 0.1s;
+            box-shadow: 2px 2px 0 #000;
+        }
+        .attach-file:hover { background: #D4ED00; }
+
+        /* 게시글 하단 버튼 */
+        .post-foot {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 14px 30px;
+            border-top: 3px solid #000;
+            background: #f9f9f9;
+        }
+        .post-foot-left { display: flex; gap: 8px; }
+        .foot-btn {
+            padding: 8px 20px;
+            border: 2px solid #000; font-weight: 900; font-size: 12px;
+            cursor: pointer; font-family: inherit;
+            box-shadow: 2px 2px 0 #000; transition: 0.1s;
+            text-transform: uppercase; background: #fff;
+        }
+        .foot-btn:hover  { background: #eee; }
+        .foot-btn:active { transform: translate(2px,2px); box-shadow: none; }
+        .foot-btn.del { border-color: #f00; color: #f00; }
+        .foot-btn.del:hover { background: #f00; color: #fff; }
+
+        /* ── 비밀글 잠금 화면 ── */
+        .secret-wall {
+            text-align: center; padding: 60px 30px;
+        }
+        .secret-wall .lock-icon { font-size: 52px; margin-bottom: 12px; }
+        .secret-wall p { font-family: sans-serif; color: #666; margin-bottom: 20px; }
+        .secret-wall input {
+            height: 46px; padding: 0 14px;
+            border: 3px solid #000; font-size: 14px;
+            font-family: inherit; font-weight: 700;
+            outline: none; margin-right: 8px;
+            box-sizing: border-box;
+        }
+        .secret-wall button {
+            height: 46px; padding: 0 22px;
+            background: #000; color: #fff;
+            border: 3px solid #000; font-weight: 900;
+            cursor: pointer; font-family: inherit;
+        }
+        .secret-err { color: #f00; font-size: 13px; margin-top: 10px; font-family: sans-serif; }
+
+        /* ── 댓글 섹션 ── */
+        .comment-section {
+            background: #fff;
+            border: 4px solid #000;
+            box-shadow: 10px 10px 0 #000;
+        }
+        .comment-head {
+            padding: 18px 30px;
+            border-bottom: 3px solid #000;
+            font-size: 18px; font-weight: 900;
+            text-transform: uppercase;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .comment-count {
+            background: #000; color: #fff;
+            padding: 2px 10px; font-size: 13px;
+        }
+
+        /* 댓글 목록 */
+        .comment-list { padding: 0 30px; }
+        .comment-item {
+            padding: 18px 0;
+            border-bottom: 1px dashed #ddd;
+        }
+        .comment-item:last-child { border-bottom: none; }
+        .comment-top {
+            display: flex; justify-content: space-between;
+            align-items: center; margin-bottom: 8px;
+        }
+        .comment-author {
+            font-weight: 900; font-size: 13px;
+            display: flex; align-items: center; gap: 6px;
+        }
+        .admin-badge {
+            background: #000; color: #D4ED00;
+            padding: 2px 8px; font-size: 10px;
+            font-weight: 900; letter-spacing: 0.5px;
+        }
+        .comment-date { font-size: 11px; color: #bbb; font-family: sans-serif; }
+        .comment-text {
+            font-family: sans-serif; font-size: 14px;
+            line-height: 1.7; color: #333;
+        }
+        .comment-del {
+            background: none; border: none;
+            color: #ccc; font-size: 13px;
+            cursor: pointer; font-weight: 900;
+            padding: 0 4px;
+        }
+        .comment-del:hover { color: #f00; }
+
+        /* 댓글 입력 */
+        .comment-write {
+            padding: 20px 30px;
+            border-top: 3px solid #000;
+            background: #f9f9f9;
+        }
+        .comment-write-title {
+            font-size: 12px; font-weight: 900;
+            text-transform: uppercase; margin-bottom: 10px; color: #555;
+        }
+        .comment-input-row { display: flex; gap: 10px; }
+        .comment-textarea {
+            flex: 1;
+            height: 80px;
+            padding: 10px 14px;
+            border: 3px solid #000;
+            font-size: 14px; font-family: sans-serif;
+            resize: vertical; outline: none;
+            box-sizing: border-box;
+        }
+        .comment-textarea:focus { background: #fffef0; }
+        .comment-submit {
+            width: 80px;
+            background: #000; color: #fff;
+            border: 3px solid #000;
+            font-weight: 900; font-size: 13px;
+            cursor: pointer; font-family: inherit;
+            box-shadow: 3px 3px 0 #555;
+            transition: 0.1s; flex-shrink: 0;
+        }
+        .comment-submit:hover  { background: #D4ED00; color: #000; }
+        .comment-submit:active { transform: translate(2px,2px); box-shadow: none; }
+
+        /* 댓글 권한 안내 */
+        .comment-restricted {
+            padding: 20px 30px;
+            border-top: 3px solid #000;
+            background: #f9f9f9;
+            text-align: center;
+            font-family: sans-serif; font-size: 13px; color: #999;
+        }
+
+        .empty-comments {
+            text-align: center; padding: 40px;
+            font-family: sans-serif; color: #bbb; font-size: 14px;
+        }
+
+        /* ── 대댓글 스타일 ── */
+        .reply-list {
+            margin-left: 28px;
+            border-left: 3px solid #D4ED00;
+            padding-left: 16px;
+        }
+        .reply-item {
+            padding: 12px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .reply-item:last-child { border-bottom: none; }
+        .reply-prefix {
+            font-size: 13px; color: #D4ED00;
+            font-weight: 900; margin-right: 4px;
+        }
+
+        /* 답글 달기 버튼 */
+        .reply-btn {
+            background: none; border: none;
+            font-size: 11px; font-weight: 900;
+            color: #888; cursor: pointer;
+            padding: 2px 6px; margin-left: 6px;
+            font-family: inherit;
+            transition: color 0.15s;
+        }
+        .reply-btn:hover { color: #000; }
+
+        /* 답글 입력 폼 (인라인) */
+        .reply-write {
+            display: none;
+            margin: 10px 0 4px 28px;
+            padding: 12px 14px;
+            background: #f9f9f9;
+            border-left: 3px solid #D4ED00;
+        }
+        .reply-write.show { display: block; }
+        .reply-input-row { display: flex; gap: 8px; }
+        .reply-textarea {
+            flex: 1; height: 60px;
+            padding: 8px 12px;
+            border: 2px solid #000;
+            font-size: 13px; font-family: sans-serif;
+            resize: none; outline: none;
+            box-sizing: border-box;
+        }
+        .reply-textarea:focus { background: #fffef0; }
+        .reply-submit {
+            width: 64px;
+            background: #000; color: #fff;
+            border: 2px solid #000;
+            font-weight: 900; font-size: 12px;
+            cursor: pointer; font-family: inherit;
+            flex-shrink: 0; transition: 0.1s;
+        }
+        .reply-submit:hover  { background: #D4ED00; color: #000; }
+        .reply-submit:active { transform: translate(2px,2px); }
+        .reply-cancel {
+            font-size: 11px; color: #aaa;
+            cursor: pointer; margin-top: 6px;
+            display: inline-block; font-family: sans-serif;
+        }
+        .reply-cancel:hover { color: #f00; }
+
+        /* 로딩 */
+        .loading-msg { text-align: center; padding: 80px; color: #aaa; font-size: 16px; }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<div class="page-wrap">
+    <span class="back-link" id="backLink" onclick="location.href='review.html'">← 목록으로</span>
+    <div id="postContent">
+        <div class="loading-msg">불러오는 중...</div>
+    </div>
+</div>
+
+<div id="footer-container"></div>
+
+<script>
+    const sb = getSupabase();
+    let currentPost    = null;   // 현재 게시글 데이터
+    let currentUser    = null;   // 로그인 사용자 (Supabase session)
+    let currentProfile = null;   // profiles 테이블 데이터 (role 포함)
+    let canComment     = false;  // 댓글 작성 가능 여부
+
+    // ────────────────────────────────────────────────────────
+    //  초기화
+    // ────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadLayout();
+
+        // URL에서 게시글 ID 읽기
+        const id = new URLSearchParams(window.location.search).get('id');
+        if (!id) {
+            document.getElementById('postContent').innerHTML = '<div class="loading-msg">잘못된 접근입니다.</div>';
+            return;
+        }
+
+        // 현재 로그인 사용자 정보 가져오기
+        const { data: { session } } = await sb.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+            const { data: profile } = await sb.from('profiles')
+                .select('name, role').eq('id', currentUser.id).single();
+            currentProfile = profile;
+        }
+
+        // 게시글 불러오기
+        await loadPost(id);
+    });
+
+    // ────────────────────────────────────────────────────────
+    //  게시글 불러오기
+    // ────────────────────────────────────────────────────────
+    async function loadPost(id) {
+        const { data: post, error } = await sb.from('posts')
+            .select(`*, post_attachments(*), post_comments(count)`)
+            .eq('id', id)
+            .single();
+
+        if (error || !post) {
+            document.getElementById('postContent').innerHTML =
+                '<div class="loading-msg">게시글을 찾을 수 없습니다.</div>';
+            return;
+        }
+
+        currentPost = post;
+
+        // 공지 게시판에서 왔으면 목록 링크 변경
+        if (post.category === '공지') {
+            const back = document.getElementById('backLink');
+            if (back) {
+                back.textContent = '← 공지 목록으로';
+                back.onclick = () => location.href = 'notice.html';
+            }
+        }
+
+        // 조회수 +1 (에러 무시)
+        sb.from('posts').update({ view_count: (post.view_count || 0) + 1 }).eq('id', id).then(() => {});
+
+        // 비밀글 처리
+        const isAuthor = currentUser && currentUser.id === post.user_id;
+        const isAdmin  = currentProfile && currentProfile.role === 'admin';
+
+        if (post.is_secret && !isAuthor && !isAdmin) {
+            renderSecretWall(id);
+            return;
+        }
+
+        renderPost(post, isAuthor, isAdmin);
+        await loadComments(id, isAuthor, isAdmin);
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  비밀글 잠금 화면
+    // ────────────────────────────────────────────────────────
+    function renderSecretWall(id) {
+        document.getElementById('postContent').innerHTML = `
+            <div class="post-card">
+                <div class="secret-wall">
+                    <div class="lock-icon">🔒</div>
+                    <h3 style="font-weight:900; margin:0 0 8px;">비밀글입니다</h3>
+                    <p>작성자와 관리자만 열람할 수 있습니다.<br>비밀번호를 입력해 주세요.</p>
+                    <div>
+                        <input type="password" id="secretInput" placeholder="비밀번호" onkeydown="if(event.key==='Enter') checkSecret('${id}')">
+                        <button onclick="checkSecret('${id}')">확인</button>
+                    </div>
+                    <div class="secret-err" id="secretErr"></div>
+                </div>
+            </div>
+        `;
+    }
+
+    async function checkSecret(id) {
+        const pw = document.getElementById('secretInput').value;
+        const { data: post } = await sb.from('posts').select('secret_password').eq('id', id).single();
+        if (post && post.secret_password === pw) {
+            // 비밀번호 일치 → 게시글 표시
+            const { data: fullPost } = await sb.from('posts')
+                .select('*, post_attachments(*), post_comments(count)').eq('id', id).single();
+            renderPost(fullPost, false, false);
+            await loadComments(id, false, false);
+        } else {
+            document.getElementById('secretErr').textContent = '❌ 비밀번호가 맞지 않습니다.';
+        }
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  게시글 렌더링
+    // ────────────────────────────────────────────────────────
+    function renderPost(post, isAuthor, isAdmin) {
+        document.title = `READY PLAY! - ${post.title}`;
+
+        const date = post.created_at ? post.created_at.slice(0, 10) : '';
+        const commentCount = post.post_comments?.[0]?.count ?? 0;
+
+        // 첨부파일
+        const attachHtml = (post.post_attachments && post.post_attachments.length > 0)
+            ? `<div class="attach-section">
+                   <div class="attach-title">📎 첨부파일 (${post.post_attachments.length})</div>
+                   ${post.post_attachments.map(f =>
+                       `<a class="attach-file" href="${f.file_url}" target="_blank" download>
+                           📄 ${escHtml(f.file_name)}
+                           <span style="font-size:11px;color:#aaa;">(${(f.file_size/1024).toFixed(1)}KB)</span>
+                       </a>`
+                   ).join('')}
+               </div>`
+            : '';
+
+        // 수정/삭제 버튼 (작성자 또는 관리자만)
+        const actionBtns = (isAuthor || isAdmin)
+            ? `<div class="post-foot-left">
+                   <button class="foot-btn del" onclick="deletePost('${post.id}')">🗑 삭제</button>
+               </div>`
+            : '<div></div>';
+
+        document.getElementById('postContent').innerHTML = `
+            <div class="post-card">
+                <div class="post-head">
+                    <div class="post-tag">${escHtml(post.category)}</div>
+                    ${post.is_secret ? ' <span style="font-size:13px;">🔒</span>' : ''}
+                    <h1 class="post-title">${escHtml(post.title)}</h1>
+                    <div class="post-meta">
+                        <span>✍ ${escHtml(post.author_name || '익명')}</span>
+                        <span>📅 ${date}</span>
+                        <span>👁 ${post.view_count || 0}</span>
+                        <span>💬 ${commentCount}</span>
+                    </div>
+                </div>
+                <div class="post-body ql-editor" style="border:none; padding:30px;">
+                    ${post.content}
+                </div>
+                ${attachHtml}
+                <div class="post-foot">
+                    ${actionBtns}
+                    <button class="foot-btn" onclick="location.href=(post.category==='공지'?'notice.html':'review.html')">← 목록</button>
+                </div>
+            </div>
+            <div class="comment-section" id="commentSection"></div>
+        `;
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  게시글 삭제
+    // ────────────────────────────────────────────────────────
+    async function deletePost(postId) {
+        if (!confirm('정말 이 게시글을 삭제하시겠습니까?\n삭제하면 댓글과 첨부파일도 함께 삭제됩니다.')) return;
+
+        const { error } = await sb.from('posts').delete().eq('id', postId);
+        if (error) { alert('삭제 실패: ' + error.message); return; }
+
+        alert('✅ 게시글이 삭제됐습니다.');
+        location.href = 'review.html';
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  댓글 + 대댓글 불러오기 + 렌더링
+    // ────────────────────────────────────────────────────────
+    async function loadComments(postId, isAuthor, isAdmin) {
+        const section = document.getElementById('commentSection');
+        if (!section) return;
+
+        // 해당 게시글의 모든 댓글 (댓글 + 대댓글) 한 번에 로드
+        const { data: comments } = await sb.from('post_comments')
+            .select('*')
+            .eq('post_id', postId)
+            .order('created_at', { ascending: true });
+
+        const all = comments || [];
+
+        // 댓글 트리 구성:
+        // parent_id가 null → 최상위 댓글
+        // parent_id가 있음 → 대댓글 (해당 댓글의 children에 넣기)
+        const topLevel = all.filter(c => !c.parent_id);
+        const replies  = all.filter(c =>  c.parent_id);
+
+        // 각 최상위 댓글에 대댓글 붙이기
+        const tree = topLevel.map(c => ({
+            ...c,
+            children: replies.filter(r => r.parent_id === c.id)
+        }));
+
+        // 로그인 회원이면 댓글 가능
+        canComment = currentUser !== null;
+
+        // ── 댓글 한 개 렌더링 함수 (재사용) ──
+        function renderComment(c, isReply = false) {
+            const cDate     = c.created_at ? c.created_at.slice(0, 16).replace('T', ' ') : '';
+            const adminBadge = c.is_admin_reply ? '<span class="admin-badge">ADMIN</span>' : '';
+            const canDel    = currentUser && (currentUser.id === c.user_id || isAdmin);
+            const delBtn    = canDel
+                ? `<button class="comment-del" onclick="deleteComment('${c.id}','${postId}',${isAuthor},${isAdmin})">✕</button>`
+                : '';
+            // 답글 버튼: 로그인 회원 + 최상위 댓글에만 표시 (대댓글에는 답글 버튼 없음)
+            const replyBtn  = (!isReply && canComment)
+                ? `<button class="reply-btn" onclick="toggleReplyForm('${c.id}')">↩ 답글</button>`
+                : '';
+            const prefix    = isReply ? '<span class="reply-prefix">↳</span>' : '';
+
+            return `
+                <div class="${isReply ? 'reply-item' : 'comment-item'}" id="cmt-${c.id}">
+                    <div class="comment-top">
+                        <div class="comment-author">
+                            ${prefix}${adminBadge}${escHtml(c.author_name || '익명')}
+                            ${replyBtn}
+                        </div>
+                        <div style="display:flex;align-items:center;gap:8px;">
+                            <span class="comment-date">${cDate}</span>
+                            ${delBtn}
+                        </div>
+                    </div>
+                    <div class="comment-text" style="${isReply ? 'padding-left:18px;' : ''}">${escHtml(c.content)}</div>
+                </div>
+            `;
+        }
+
+        // ── 전체 댓글 목록 HTML 구성 ──
+        const listHtml = tree.length === 0
+            ? '<div class="empty-comments">첫 번째 댓글을 남겨보세요 💬</div>'
+            : `<div class="comment-list">
+                ${tree.map(c => `
+                    ${renderComment(c, false)}
+
+                    ${/* 대댓글 목록 */c.children.length > 0
+                        ? `<div class="reply-list">${c.children.map(r => renderComment(r, true)).join('')}</div>`
+                        : ''}
+
+                    ${/* 답글 입력 폼 (처음엔 숨김) */canComment ? `
+                    <div class="reply-write" id="reply-form-${c.id}">
+                        <div class="reply-input-row">
+                            <textarea class="reply-textarea" id="reply-text-${c.id}"
+                                placeholder="${escHtml(c.author_name || '작성자')}님에게 답글..."></textarea>
+                            <button class="reply-submit"
+                                onclick="submitReply('${postId}','${c.id}',${isAdmin})">등록</button>
+                        </div>
+                        <span class="reply-cancel" onclick="toggleReplyForm('${c.id}')">취소</span>
+                    </div>` : ''}
+                `).join('')}
+               </div>`;
+
+        // ── 새 댓글 작성 영역 ──
+        const writeArea = canComment
+            ? `<div class="comment-write">
+                   <div class="comment-write-title">
+                       ${isAdmin ? '🛡 관리자 댓글' : '✍ 댓글 작성'}
+                   </div>
+                   <div class="comment-input-row">
+                       <textarea class="comment-textarea" id="commentText"
+                           placeholder="${isAdmin ? '관리자로서 답글을 남겨주세요...' : '댓글을 입력하세요...'}"></textarea>
+                       <button class="comment-submit" onclick="submitComment('${postId}',${isAdmin})">등록</button>
+                   </div>
+               </div>`
+            : `<div class="comment-restricted">
+                   🔒 댓글은 로그인한 회원만 남길 수 있습니다.
+                   <a href="login.html" style="display:inline-block;margin-left:12px;font-weight:900;color:#000;text-decoration:underline;">로그인하기 →</a>
+               </div>`;
+
+        section.innerHTML = `
+            <div class="comment-head">
+                댓글 <span class="comment-count">${all.length}</span>
+            </div>
+            ${listHtml}
+            ${writeArea}
+        `;
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  답글 폼 열기/닫기 토글
+    // ────────────────────────────────────────────────────────
+    function toggleReplyForm(commentId) {
+        const form = document.getElementById(`reply-form-${commentId}`);
+        if (!form) return;
+        const isOpen = form.classList.toggle('show');
+        if (isOpen) {
+            const ta = document.getElementById(`reply-text-${commentId}`);
+            if (ta) ta.focus();
+        }
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  댓글 등록 (최상위)
+    // ────────────────────────────────────────────────────────
+    async function submitComment(postId, isAdmin) {
+        const text = document.getElementById('commentText').value.trim();
+        if (!text) { alert('댓글 내용을 입력해주세요.'); return; }
+
+        const user = JSON.parse(sessionStorage.getItem('readyplayUser') || '{}');
+        const { error } = await sb.from('post_comments').insert([{
+            post_id:        postId,
+            user_id:        currentUser?.id || null,
+            author_name:    user.userName || '익명',
+            content:        text,
+            is_admin_reply: isAdmin,
+            parent_id:      null          // 최상위 댓글
+        }]);
+
+        if (error) { alert('댓글 등록 실패: ' + error.message); return; }
+
+        const isAuthor = currentPost && currentUser && currentUser.id === currentPost.user_id;
+        await loadComments(postId, isAuthor, isAdmin);
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  대댓글 등록
+    // ────────────────────────────────────────────────────────
+    async function submitReply(postId, parentId, isAdmin) {
+        const textarea = document.getElementById(`reply-text-${parentId}`);
+        const text = textarea ? textarea.value.trim() : '';
+        if (!text) { alert('답글 내용을 입력해주세요.'); return; }
+
+        const user = JSON.parse(sessionStorage.getItem('readyplayUser') || '{}');
+        const { error } = await sb.from('post_comments').insert([{
+            post_id:        postId,
+            user_id:        currentUser?.id || null,
+            author_name:    user.userName || '익명',
+            content:        text,
+            is_admin_reply: isAdmin,
+            parent_id:      parentId      // 부모 댓글 ID
+        }]);
+
+        if (error) { alert('답글 등록 실패: ' + error.message); return; }
+
+        const isAuthor = currentPost && currentUser && currentUser.id === currentPost.user_id;
+        await loadComments(postId, isAuthor, isAdmin);
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  댓글/대댓글 삭제
+    // ────────────────────────────────────────────────────────
+    async function deleteComment(commentId, postId, isAuthor, isAdmin) {
+        if (!confirm('이 댓글을 삭제하시겠습니까?\n대댓글도 함께 삭제됩니다.')) return;
+
+        const { error } = await sb.from('post_comments').delete().eq('id', commentId);
+        if (error) { alert('삭제 실패: ' + error.message); return; }
+
+        await loadComments(postId, isAuthor, isAdmin);
+    }
+
+    // XSS 방지
+    function escHtml(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+</script>
+</body>
+</html>

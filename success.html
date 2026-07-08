@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>ORDER COMPLETE - Ready Play!</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <style>
+        body { margin: 0; font-family: 'Pretendard', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: #f7f7f7; }
+        .result-box { background: #fff; border: 3px solid #000; padding: 60px; text-align: center; box-shadow: 10px 10px 0px #000; max-width: 500px; width: 90%; }
+        h1 { font-family: 'Arial Black'; font-size: 40px; margin-bottom: 10px; }
+        .order-num-label { font-size: 14px; color: #666; margin-top: 20px; }
+        .order-num { font-size: 20px; font-weight: 900; color: #ff0000; margin-bottom: 30px; border-bottom: 2px solid #eee; padding-bottom: 20px; }
+        .btn-home { display: inline-block; background: #000; color: #fff; padding: 15px 40px; text-decoration: none; font-weight: bold; font-size: 18px; transition: 0.2s; }
+        .btn-home:hover { transform: translate(-3px, -3px); box-shadow: 5px 5px 0px #ff0000; }
+    </style>
+</head>
+<body>
+
+<div id="display_area" class="result-box">
+    <p style="font-weight:bold; color:#aaa;">주문 처리 중...</p>
+</div>
+
+<script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const isMember  = urlParams.get('isMember') === 'true';
+
+    // orderform.html에서 저장한 임시 주문 데이터 꺼내기
+    const pendingOrder = JSON.parse(sessionStorage.getItem('pendingOrder') || 'null');
+
+    async function saveAndShow() {
+        const displayArea = document.getElementById('display_area');
+        let orderNumber = pendingOrder ? pendingOrder.order_number : (urlParams.get('orderNumber') || 'N/A');
+
+        // pendingOrder가 있으면 Supabase에 저장 (결제 성공 후 딱 한 번만 실행)
+        if (pendingOrder) {
+            try {
+                const sb = getSupabase();
+                const { error } = await sb.from('orders').insert([pendingOrder]);
+                if (error) throw error;
+                console.log("주문 DB 저장 성공:", orderNumber);
+            } catch (err) {
+                console.error("주문 저장 실패:", err.message);
+                // 저장 실패해도 성공 화면은 보여줌 (주문번호는 표시)
+            } finally {
+                // 중복 저장 방지: 저장 시도 후 반드시 삭제
+                sessionStorage.removeItem('pendingOrder');
+            }
+        }
+
+        // 성공 화면 렌더링
+        displayArea.innerHTML = `
+            <h1>THANK YOU!</h1>
+            <p style="font-weight:bold;">주문이 정상적으로 접수되었습니다.</p>
+            <div class="order-num-label">${isMember ? '주문번호' : '비회원 주문번호'}</div>
+            <div class="order-num">${orderNumber}</div>
+            <p style="font-size:13px; color:#888; margin-bottom:20px;">
+                ${isMember ? '마이페이지에서 내역을 확인하실 수 있습니다.' : '주문번호를 메모해 두시면 조회가 가능합니다.'}
+            </p>
+            <a href="index.html" class="btn-home">GO TO MAIN</a>
+        `;
+
+        // 장바구니 데이터 초기화
+        sessionStorage.removeItem('OrderTemp');
+    }
+
+    saveAndShow();
+</script>
+</body>
+</html>

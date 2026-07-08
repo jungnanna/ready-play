@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>READY PLAY - MY PAGE</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        body { font-family: 'Pretendard', 'Arial Black', sans-serif; background: #f0f0f0; margin: 0; }
+
+        /* ── 전체 레이아웃 ── */
+        .mypage-layout {
+            display: flex;
+            max-width: 1100px;
+            margin: 40px auto;
+            gap: 30px;
+            padding: 0 20px;
+            align-items: flex-start;
+        }
+
+        /* ── 왼쪽 사이드바 메뉴 ── */
+        .mypage-sidebar {
+            width: 220px;
+            flex-shrink: 0;
+            border: 4px solid #000;
+            background: #fff;
+            box-shadow: 8px 8px 0px #000;
+        }
+
+        .sidebar-user {
+            background: #000;
+            color: #fff;
+            padding: 20px;
+            font-weight: 900;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .sidebar-user .user-name {
+            font-size: 20px;
+            margin-top: 4px;
+            color: #D4ED00;
+        }
+
+        .sidebar-section-label {
+            font-size: 10px;
+            font-weight: 900;
+            letter-spacing: 0.1em;
+            color: #aaa;
+            padding: 16px 20px 6px;
+            text-transform: uppercase;
+        }
+
+        .sidebar-menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 20px;
+            font-size: 14px;
+            font-weight: 900;
+            cursor: pointer;
+            border-left: 4px solid transparent;
+            transition: 0.1s;
+            text-transform: uppercase;
+        }
+
+        .sidebar-menu-item:hover {
+            background: #f0f0f0;
+        }
+
+        .sidebar-menu-item.active {
+            border-left: 4px solid #000;
+            background: #D4ED00;
+            color: #000;
+        }
+
+        .sidebar-menu-item .menu-icon {
+            font-size: 16px;
+            width: 20px;
+            text-align: center;
+        }
+
+        .coming-badge {
+            margin-left: auto;
+            font-size: 9px;
+            background: #FF5A10;
+            color: #fff;
+            padding: 2px 6px;
+            font-weight: 900;
+            letter-spacing: 0.05em;
+        }
+
+        .sidebar-divider {
+            border: none;
+            border-top: 2px solid #000;
+            margin: 10px 0;
+        }
+
+        /* ── 오른쪽 콘텐츠 영역 ── */
+        .mypage-content {
+            flex: 1;
+        }
+
+        .content-panel {
+            display: none;
+            background: #fff;
+            border: 4px solid #000;
+            padding: 40px;
+            box-shadow: 8px 8px 0px #000;
+        }
+
+        .content-panel.active { display: block; }
+
+        .panel-title {
+            font-size: 28px;
+            font-weight: 900;
+            text-transform: uppercase;
+            border-bottom: 4px solid #000;
+            padding-bottom: 15px;
+            margin: 0 0 30px 0;
+        }
+
+        /* ── 폼 공통 ── */
+        .info-group { margin-bottom: 20px; }
+        .info-group label {
+            display: block;
+            font-weight: 900;
+            font-size: 11px;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+        .info-group input {
+            width: 100%;
+            padding: 14px 16px;
+            border: 3px solid #000;
+            font-size: 15px;
+            font-weight: 700;
+            box-sizing: border-box;
+            outline: none;
+            font-family: inherit;
+        }
+        .info-group input:focus { background: #f0f0f0; }
+        .info-group input[readonly] { background: #eee; color: #888; cursor: not-allowed; }
+
+        /* 주소 검색 버튼 행 */
+        .addr-row { display: flex; gap: 10px; }
+        .addr-row input { flex: 1; }
+        .addr-search-btn {
+            padding: 14px 18px;
+            border: 3px solid #000;
+            background: #000;
+            color: #fff;
+            font-weight: 900;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: 0.1s;
+        }
+        .addr-search-btn:active { transform: translate(2px, 2px); }
+
+        /* 저장 버튼 */
+        .save-btn {
+            width: 100%;
+            padding: 18px;
+            background: #000;
+            color: #fff;
+            font-weight: 900;
+            font-size: 18px;
+            border: 3px solid #000;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: 0.15s;
+            font-family: inherit;
+            text-transform: uppercase;
+        }
+        .save-btn:hover { background: #D4ED00; color: #000; }
+        .save-btn:active { transform: translate(2px, 2px); }
+        .save-btn.orange { background: #FF5A10; }
+        .save-btn.orange:hover { background: #D4ED00; color: #000; }
+
+        /* ── COMING SOON 패널 ── */
+        .coming-soon-box {
+            text-align: center;
+            padding: 80px 20px;
+            border: 4px dashed #ccc;
+        }
+
+        .coming-soon-box .cs-icon { font-size: 60px; margin-bottom: 20px; }
+
+        .coming-soon-box .cs-title {
+            font-size: 28px;
+            font-weight: 900;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .coming-soon-box .cs-desc {
+            font-size: 14px;
+            color: #888;
+            font-weight: 700;
+        }
+
+        .cs-tag {
+            display: inline-block;
+            background: #FF5A10;
+            color: #fff;
+            font-weight: 900;
+            font-size: 11px;
+            padding: 4px 12px;
+            margin-bottom: 20px;
+            letter-spacing: 0.1em;
+        }
+
+        /* 내가 쓴 게시글 테이블 */
+        .review-table { width: 100%; border-collapse: collapse; }
+        .review-table th { background: #000; color: #fff; padding: 12px; font-size: 12px; text-align: left; }
+        .review-table td { border-bottom: 2px solid #000; padding: 14px 12px; font-size: 14px; font-weight: 700; }
+        .review-table tr:hover td { background: #f0f0f0; cursor: pointer; }
+        .empty-review { text-align: center; padding: 60px; color: #aaa; font-weight: 900; }
+
+        /* ── 주문 카드 ── */
+        .order-card {
+            border: 3px solid #000; margin-bottom: 16px;
+            box-shadow: 4px 4px 0 #000;
+        }
+        .order-card-header {
+            display: flex; justify-content: space-between; align-items: center;
+            background: #000; color: #fff; padding: 12px 16px;
+            flex-wrap: wrap; gap: 8px;
+        }
+        .order-card-header .order-num { font-size: 13px; font-weight: 900; letter-spacing: 0.05em; }
+        .order-card-header .order-date { font-size: 11px; color: #aaa; }
+        .order-status-badge {
+            display: inline-block; padding: 4px 12px; font-size: 11px;
+            font-weight: 900; border: 2px solid #fff;
+        }
+        .status-결제완료  { background: #D4ED00; color: #000; border-color: #D4ED00; }
+        .status-상품준비중 { background: #a8d8ff; color: #000; border-color: #a8d8ff; }
+        .status-배송중   { background: #FF5A10; color: #fff; border-color: #FF5A10; }
+        .status-배송완료  { background: #888; color: #fff; border-color: #888; }
+        .status-취소    { background: #f00; color: #fff; border-color: #f00; }
+
+        .order-card-body { padding: 16px; background: #fff; }
+        .order-item-row {
+            display: flex; justify-content: space-between;
+            padding: 8px 0; border-bottom: 1px solid #eee;
+            font-size: 14px; font-weight: 700;
+        }
+        .order-item-row:last-child { border-bottom: none; }
+        .order-card-footer {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 12px 16px; background: #f7f7f7; border-top: 2px solid #000;
+            font-weight: 900; font-size: 14px;
+        }
+        .order-total-price { font-size: 18px; color: #FF5A10; }
+
+        /* ── 배송 타임라인 ── */
+        .delivery-card {
+            border: 3px solid #000; margin-bottom: 20px;
+            box-shadow: 4px 4px 0 #000;
+        }
+        .delivery-card-header {
+            background: #000; color: #fff; padding: 14px 18px;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;
+        }
+        .delivery-card-header .d-order-name { font-weight: 900; font-size: 14px; }
+        .delivery-card-header .d-order-num  { font-size: 11px; color: #aaa; }
+        .timeline {
+            display: flex; justify-content: space-between;
+            padding: 24px 20px; background: #fff; position: relative;
+        }
+        .timeline::before {
+            content: ''; position: absolute; top: 36px; left: 10%; right: 10%;
+            height: 4px; background: #ddd; z-index: 0;
+        }
+        .timeline-step {
+            display: flex; flex-direction: column; align-items: center;
+            gap: 8px; z-index: 1; flex: 1;
+        }
+        .timeline-dot {
+            width: 24px; height: 24px; border-radius: 50%;
+            border: 3px solid #000; background: #fff;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 11px; font-weight: 900;
+        }
+        .timeline-dot.done  { background: #000; color: #fff; }
+        .timeline-dot.current { background: #D4ED00; color: #000; border-color: #000; }
+        .timeline-label { font-size: 10px; font-weight: 900; text-align: center; text-transform: uppercase; }
+        .timeline-label.done { color: #000; }
+        .timeline-label.current { color: #FF5A10; }
+        .timeline-label.pending { color: #ccc; }
+
+        .empty-orders { text-align: center; padding: 60px 20px; color: #aaa; font-size: 16px; font-weight: 900; }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<div class="mypage-layout">
+
+    <!-- ── 왼쪽 사이드바 ── -->
+    <aside class="mypage-sidebar">
+        <div class="sidebar-user">
+            MY PAGE
+            <div class="user-name" id="sidebar-username">...</div>
+        </div>
+
+        <div class="sidebar-section-label">계정 관리</div>
+        <div class="sidebar-menu-item active" onclick="switchTab('profile')">
+            <span class="menu-icon">👤</span> 프로필 수정
+        </div>
+        <div class="sidebar-menu-item" onclick="switchTab('address')">
+            <span class="menu-icon">📍</span> 주소 수정
+        </div>
+        <div class="sidebar-menu-item" onclick="switchTab('password')">
+            <span class="menu-icon">🔒</span> 비밀번호 변경
+        </div>
+
+        <hr class="sidebar-divider">
+
+        <div class="sidebar-section-label">쇼핑 정보</div>
+        <div class="sidebar-menu-item" onclick="switchTab('orders')">
+            <span class="menu-icon">📦</span> 주문 조회
+        </div>
+        <div class="sidebar-menu-item" onclick="switchTab('delivery')">
+            <span class="menu-icon">🚚</span> 배송 조회
+        </div>
+        <div class="sidebar-menu-item" onclick="switchTab('coupon')">
+            <span class="menu-icon">🎟</span> 쿠폰
+            <span class="coming-badge">SOON</span>
+        </div>
+        <div class="sidebar-menu-item" onclick="switchTab('points')">
+            <span class="menu-icon">💰</span> 적립금
+            <span class="coming-badge">SOON</span>
+        </div>
+
+        <hr class="sidebar-divider">
+
+        <div class="sidebar-section-label">커뮤니티</div>
+        <div class="sidebar-menu-item" onclick="switchTab('reviews')">
+            <span class="menu-icon">✏️</span> 내가 쓴 게시글
+        </div>
+    </aside>
+
+    <!-- ── 오른쪽 콘텐츠 ── -->
+    <main class="mypage-content">
+
+        <!-- 프로필 수정 -->
+        <div class="content-panel active" id="panel-profile">
+            <div class="panel-title">프로필 수정</div>
+            <div class="info-group">
+                <label>Email (ID)</label>
+                <input type="text" id="displayEmail" readonly>
+            </div>
+            <div class="info-group">
+                <label>이름</label>
+                <input type="text" id="updateName" placeholder="이름을 입력하세요">
+            </div>
+            <div class="info-group">
+                <label>연락처</label>
+                <input type="tel" id="updatePhone" placeholder="010-0000-0000">
+            </div>
+            <button class="save-btn" id="saveProfileBtn">SAVE PROFILE</button>
+        </div>
+
+        <!-- 주소 수정 -->
+        <div class="content-panel" id="panel-address">
+            <div class="panel-title">주소 수정</div>
+            <div class="info-group">
+                <label>우편번호</label>
+                <div class="addr-row">
+                    <input type="text" id="updatePostcode" placeholder="우편번호" readonly>
+                    <button class="addr-search-btn" onclick="execDaumPostcode()">주소 검색</button>
+                </div>
+            </div>
+            <div class="info-group">
+                <label>기본 주소</label>
+                <input type="text" id="updateAddr" placeholder="기본 주소" readonly>
+            </div>
+            <div class="info-group">
+                <label>상세 주소</label>
+                <input type="text" id="updateDetail" placeholder="상세 주소를 입력하세요">
+            </div>
+            <button class="save-btn" id="saveAddressBtn">SAVE ADDRESS</button>
+        </div>
+
+        <!-- 비밀번호 변경 -->
+        <div class="content-panel" id="panel-password">
+            <div class="panel-title">비밀번호 변경</div>
+            <div class="info-group">
+                <label>새 비밀번호</label>
+                <input type="password" id="newPassword" placeholder="새 비밀번호 (6자 이상)">
+            </div>
+            <div class="info-group">
+                <label>비밀번호 확인</label>
+                <input type="password" id="confirmPassword" placeholder="비밀번호 재입력">
+            </div>
+            <button class="save-btn orange" id="savePasswordBtn">UPDATE PASSWORD</button>
+        </div>
+
+        <!-- 주문 조회 -->
+        <div class="content-panel" id="panel-orders">
+            <div class="panel-title">주문 조회</div>
+            <div id="orders-list">
+                <div class="empty-orders">불러오는 중...</div>
+            </div>
+        </div>
+
+        <!-- 배송 조회 -->
+        <div class="content-panel" id="panel-delivery">
+            <div class="panel-title">배송 조회</div>
+            <div id="delivery-list">
+                <div class="empty-orders">불러오는 중...</div>
+            </div>
+        </div>
+
+        <!-- 쿠폰 (COMING SOON) -->
+        <div class="content-panel" id="panel-coupon">
+            <div class="panel-title">쿠폰</div>
+            <div class="coming-soon-box">
+                <div class="cs-icon">🎟</div>
+                <div class="cs-tag">COMING SOON</div>
+                <div class="cs-title">준비 중입니다</div>
+                <div class="cs-desc">쿠폰 등록 및 사용 기능을 곧 오픈합니다.<br>관리자 페이지에서 쿠폰 발급 후 연동 예정이에요!</div>
+            </div>
+        </div>
+
+        <!-- 적립금 (COMING SOON) -->
+        <div class="content-panel" id="panel-points">
+            <div class="panel-title">적립금</div>
+            <div class="coming-soon-box">
+                <div class="cs-icon">💰</div>
+                <div class="cs-tag">COMING SOON</div>
+                <div class="cs-title">준비 중입니다</div>
+                <div class="cs-desc">구매 시 자동 적립되는 포인트 기능을 곧 오픈합니다.</div>
+            </div>
+        </div>
+
+        <!-- 내가 쓴 게시글 -->
+        <div class="content-panel" id="panel-reviews">
+            <div class="panel-title">내가 쓴 게시글</div>
+            <div id="my-reviews-content">
+                <div style="text-align:center;padding:40px;color:#aaa;font-family:sans-serif;">불러오는 중...</div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<div id="footer-container"></div>
+
+<script>
+    const supabaseClient = getSupabase();
+    let currentUserName = '';
+
+    // ── 탭 전환 ──
+    function switchTab(tabName) {
+        // 모든 패널 숨기기
+        document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.sidebar-menu-item').forEach(m => m.classList.remove('active'));
+
+        // 선택한 패널과 메뉴 활성화
+        document.getElementById('panel-' + tabName).classList.add('active');
+        event.currentTarget.classList.add('active');
+
+        // 탭별 데이터 로드
+        if (tabName === 'reviews')  loadMyPosts();
+        if (tabName === 'orders')   loadMyOrders();
+        if (tabName === 'delivery') loadMyDelivery();
+    }
+
+    // ── 다음 주소 검색 API ──
+    function execDaumPostcode() {
+        new daum.Postcode({
+            oncomplete: function(data) {
+                document.getElementById('updatePostcode').value = data.zonecode;
+                document.getElementById('updateAddr').value = data.address;
+                document.getElementById('updateDetail').focus();
+            }
+        }).open();
+    }
+
+    // ── 내가 쓴 게시글 렌더링 (localStorage 기반) ──
+    // ── 내가 쓴 게시글 (Supabase 연동) ──
+    async function loadMyPosts() {
+        const container = document.getElementById('my-reviews-content');
+        container.innerHTML = '<div style="text-align:center;padding:40px;color:#aaa;font-family:sans-serif;">불러오는 중...</div>';
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+
+        const { data: posts, error } = await supabaseClient
+            .from('posts')
+            .select('id, title, category, created_at, view_count, is_secret, post_comments(count)')
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: false });
+
+        if (error || !posts || posts.length === 0) {
+            container.innerHTML = '<div style="text-align:center;padding:60px;color:#aaa;font-family:sans-serif;">✏ 작성한 게시글이 없습니다.</div>';
+            return;
+        }
+
+        container.innerHTML = `
+            <table style="width:100%; border-collapse:collapse; font-size:13px;">
+                <thead>
+                    <tr style="background:#000; color:#fff;">
+                        <th style="padding:12px 10px; text-align:center; width:70px;">말머리</th>
+                        <th style="padding:12px 10px; text-align:left;">제목</th>
+                        <th style="padding:12px 10px; text-align:center; width:90px;">날짜</th>
+                        <th style="padding:12px 10px; text-align:center; width:50px;">조회</th>
+                        <th style="padding:12px 10px; text-align:center; width:50px;">삭제</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${posts.map(p => {
+                        const date = p.created_at ? p.created_at.slice(0, 10) : '';
+                        const cmtCount = p.post_comments?.[0]?.count ?? 0;
+                        const secretIcon = p.is_secret ? '🔒 ' : '';
+                        return `
+                            <tr style="border-bottom:1px solid #eee; cursor:pointer;"
+                                onclick="location.href='post-detail.html?id=${p.id}'">
+                                <td style="padding:12px 10px; text-align:center;">
+                                    <span style="background:#D4ED00; border:2px solid #000; padding:2px 8px; font-size:10px; font-weight:900;">${p.category}</span>
+                                </td>
+                                <td style="padding:12px 10px; font-weight:700;">
+                                    ${secretIcon}${p.title}
+                                    ${cmtCount > 0 ? `<span style="color:#FF5A10; font-size:11px; font-weight:900;"> [${cmtCount}]</span>` : ''}
+                                </td>
+                                <td style="padding:12px 10px; text-align:center; color:#aaa; font-family:sans-serif;">${date}</td>
+                                <td style="padding:12px 10px; text-align:center; color:#aaa;">${p.view_count || 0}</td>
+                                <td style="padding:12px 10px; text-align:center;" onclick="event.stopPropagation(); deleteMyPost('${p.id}', this)">
+                                    <button style="background:#fff; border:2px solid #f00; color:#f00; padding:4px 10px; font-weight:900; font-size:11px; cursor:pointer; font-family:inherit;">삭제</button>
+                                </td>
+                            </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+            <div style="margin-top:16px; text-align:right;">
+                <button onclick="location.href='write-post.html'"
+                    style="padding:10px 22px; background:#000; color:#fff; border:3px solid #000; font-weight:900; font-size:13px; cursor:pointer; font-family:inherit; box-shadow:3px 3px 0 #555;">
+                    ✏ 새 글 쓰기
+                </button>
+            </div>
+        `;
+    }
+
+    async function deleteMyPost(postId, btn) {
+        if (!confirm('이 게시글을 삭제하시겠습니까?\n댓글과 첨부파일도 함께 삭제됩니다.')) return;
+        btn.textContent = '...';
+        const { error } = await supabaseClient.from('posts').delete().eq('id', postId);
+        if (error) { alert('삭제 실패: ' + error.message); btn.textContent = '삭제'; return; }
+        loadMyPosts();  // 목록 새로고침
+    }
+
+    // ── 페이지 초기화 ──
+    window.addEventListener('DOMContentLoaded', async () => {
+        await loadLayout();
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) {
+            alert("로그인이 필요합니다.");
+            location.href = 'login.html';
+            return;
+        }
+
+        // 프로필 데이터 불러오기
+        const { data: profile } = await supabaseClient
+            .from('profiles')
+            .select('*')
+            .eq('id', session.user.id)
+            .single();
+
+        if (profile) {
+            currentUserName = profile.name || '';
+
+            // 사이드바 사용자 이름
+            document.getElementById('sidebar-username').innerText = profile.name || '회원';
+
+            // 프로필 탭
+            document.getElementById('displayEmail').value = profile.email || '';
+            document.getElementById('updateName').value = profile.name || '';
+            document.getElementById('updatePhone').value = profile.phone || '';
+
+            // 주소 탭
+            document.getElementById('updatePostcode').value = profile.postcode || '';
+            document.getElementById('updateAddr').value = profile.addr || '';
+            document.getElementById('updateDetail').value = profile.detail || '';
+        }
+    });
+
+    // ── 프로필 저장 ──
+    document.getElementById('saveProfileBtn').addEventListener('click', async () => {
+        const newName  = document.getElementById('updateName').value.trim();
+        const newPhone = document.getElementById('updatePhone').value.trim();
+        if (!newName) return alert("이름을 입력해주세요.");
+
+        try {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const { error } = await supabaseClient
+                .from('profiles')
+                .update({ name: newName, phone: newPhone })
+                .eq('id', user.id);
+
+            if (error) throw error;
+
+            // sessionStorage의 readyplayUser도 이름 업데이트
+            const userData = JSON.parse(sessionStorage.getItem('readyplayUser') || '{}');
+            userData.userName = newName;
+            sessionStorage.setItem('readyplayUser', JSON.stringify(userData));
+
+            currentUserName = newName;
+            document.getElementById('sidebar-username').innerText = newName;
+            alert("프로필이 저장되었습니다!");
+        } catch (err) {
+            alert("오류: " + err.message);
+        }
+    });
+
+    // ── 주소 저장 ──
+    document.getElementById('saveAddressBtn').addEventListener('click', async () => {
+        const postcode = document.getElementById('updatePostcode').value.trim();
+        const addr     = document.getElementById('updateAddr').value.trim();
+        const detail   = document.getElementById('updateDetail').value.trim();
+
+        if (!postcode || !addr) return alert("주소를 먼저 검색해주세요.");
+
+        try {
+            const { data: { user } } = await supabaseClient.auth.getUser();
+            const { error } = await supabaseClient
+                .from('profiles')
+                .update({ postcode, addr, detail })
+                .eq('id', user.id);
+
+            if (error) throw error;
+            alert("주소가 저장되었습니다!");
+        } catch (err) {
+            alert("오류: " + err.message);
+        }
+    });
+
+    // ── 주문 조회 ──
+    async function loadMyOrders() {
+        const container = document.getElementById('orders-list');
+        container.innerHTML = '<div class="empty-orders">불러오는 중...</div>';
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+
+        const { data: orders, error } = await supabaseClient
+            .from('orders')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .order('created_at', { ascending: false });
+
+        if (error || !orders || orders.length === 0) {
+            container.innerHTML = '<div class="empty-orders">📦 주문 내역이 없습니다.</div>';
+            return;
+        }
+
+        container.innerHTML = orders.map(o => {
+            const items = Array.isArray(o.items) ? o.items : [];
+            const itemsHtml = items.map(item => `
+                <div class="order-item-row">
+                    <span>${item.name} × ${item.qty || 1}개</span>
+                    <span>${((item.price || 0) * (item.qty || 1)).toLocaleString()}원</span>
+                </div>
+            `).join('');
+
+            const d = new Date(o.created_at);
+            const dateStr = `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+
+            return `
+                <div class="order-card">
+                    <div class="order-card-header">
+                        <div>
+                            <div class="order-num">${o.order_number || o.id.slice(0,12)}</div>
+                            <div class="order-date">${dateStr} · ${o.pay_method}</div>
+                        </div>
+                        <span class="order-status-badge status-${o.status}">${o.status}</span>
+                    </div>
+                    <div class="order-card-body">${itemsHtml}</div>
+                    <div class="order-card-footer">
+                        <span>총 결제금액</span>
+                        <span class="order-total-price">${(o.total_price || 0).toLocaleString()}원</span>
+                    </div>
+                    ${(o.status === '결제완료' || o.status === '상품준비중')
+                        ? `<div style="padding:10px 16px 14px; border-top:1px dashed #ddd;">
+                               <button onclick="cancelOrder('${o.id}', '${o.order_number || o.id.slice(0,12)}')"
+                                   style="width:100%; padding:9px; background:#fff; border:2px solid #f00;
+                                          color:#f00; font-weight:900; font-size:13px; cursor:pointer;
+                                          font-family:inherit; transition:0.1s;"
+                                   onmouseover="this.style.background='#f00';this.style.color='#fff'"
+                                   onmouseout="this.style.background='#fff';this.style.color='#f00'">
+                                   주문 취소 요청
+                               </button>
+                           </div>`
+                        : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ── 주문 취소 ──
+    async function cancelOrder(orderId, orderNum) {
+        // 취소 전 확인
+        if (!confirm(`주문번호 [${orderNum}]\n정말 취소하시겠습니까?\n\n취소된 주문은 되돌릴 수 없습니다.`)) return;
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) { alert('로그인이 필요합니다.'); return; }
+
+        const { error } = await supabaseClient
+            .from('orders')
+            .update({ status: '취소' })
+            .eq('id', orderId)
+            .eq('user_id', session.user.id);   // 본인 주문만 취소 가능
+
+        if (error) {
+            alert('취소 처리 중 오류가 발생했습니다: ' + error.message);
+        } else {
+            alert(`주문 [${orderNum}] 이(가) 취소됐습니다.`);
+            loadMyOrders();   // 목록 새로고침
+        }
+    }
+
+    // ── 배송 조회 ──
+    const DELIVERY_STEPS = ['결제완료', '상품준비중', '배송중', '배송완료'];
+
+    async function loadMyDelivery() {
+        const container = document.getElementById('delivery-list');
+        container.innerHTML = '<div class="empty-orders">불러오는 중...</div>';
+
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (!session) return;
+
+        const { data: orders, error } = await supabaseClient
+            .from('orders')
+            .select('*')
+            .eq('user_id', session.user.id)
+            .neq('status', '취소')
+            .order('created_at', { ascending: false });
+
+        if (error || !orders || orders.length === 0) {
+            container.innerHTML = '<div class="empty-orders">🚚 배송 중인 주문이 없습니다.</div>';
+            return;
+        }
+
+        container.innerHTML = orders.map(o => {
+            const items = Array.isArray(o.items) ? o.items : [];
+            const orderName = items.length > 0
+                ? (items.length > 1 ? `${items[0].name} 외 ${items.length - 1}건` : items[0].name)
+                : '상품';
+
+            const currentStep = DELIVERY_STEPS.indexOf(o.status);
+
+            const timelineHtml = DELIVERY_STEPS.map((step, i) => {
+                let dotClass = 'timeline-dot';
+                let labelClass = 'timeline-label';
+                if (i < currentStep) { dotClass += ' done';    labelClass += ' done'; }
+                else if (i === currentStep) { dotClass += ' current'; labelClass += ' current'; }
+                else { labelClass += ' pending'; }
+
+                const icons = ['💳', '📦', '🚛', '✅'];
+                return `
+                    <div class="timeline-step">
+                        <div class="${dotClass}">${icons[i]}</div>
+                        <div class="${labelClass}">${step}</div>
+                    </div>
+                `;
+            }).join('');
+
+            return `
+                <div class="delivery-card">
+                    <div class="delivery-card-header">
+                        <div>
+                            <div class="d-order-name">${orderName}</div>
+                            <div class="d-order-num">${o.order_number || o.id.slice(0,12)}</div>
+                        </div>
+                        <span class="order-status-badge status-${o.status}">${o.status}</span>
+                    </div>
+                    <div class="timeline">${timelineHtml}</div>
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ── 비밀번호 변경 ──
+    document.getElementById('savePasswordBtn').addEventListener('click', async () => {
+        const newPw     = document.getElementById('newPassword').value;
+        const confirmPw = document.getElementById('confirmPassword').value;
+
+        if (newPw.length < 6) return alert("비밀번호는 6자 이상이어야 합니다.");
+        if (newPw !== confirmPw) return alert("비밀번호가 일치하지 않습니다.");
+
+        try {
+            const { error } = await supabaseClient.auth.updateUser({ password: newPw });
+            if (error) throw error;
+
+            alert("비밀번호가 변경되었습니다! 다시 로그인해주세요.");
+            await supabaseClient.auth.signOut();
+            sessionStorage.removeItem('readyplayUser');
+            location.href = 'login.html';
+        } catch (err) {
+            alert("비밀번호 변경 실패: " + err.message);
+        }
+    });
+</script>
+</body>
+</html>

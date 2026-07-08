@@ -1,0 +1,768 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>READY PLAY! - KIT BUILDER</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        body { background: #f0f0f0; font-family: 'Arial Black', sans-serif; margin: 0; }
+
+        .kit-wrapper {
+            max-width: 1100px;
+            margin: 60px auto;
+            padding: 0 20px 100px;
+        }
+
+        /* 뒤로가기 */
+        .back-btn {
+            display: inline-block; margin-bottom: 20px;
+            font-weight: 900; font-size: 14px; cursor: pointer;
+            text-decoration: none; color: #000;
+            border-bottom: 2px solid #000; padding-bottom: 2px;
+        }
+        .back-btn:hover { color: #FF5A10; border-color: #FF5A10; }
+
+        /* 메인 레이아웃 */
+        .kit-main {
+            display: flex;
+            gap: 0;
+            border: 4px solid #000;
+            box-shadow: 12px 12px 0 #000;
+            background: #fff;
+        }
+
+        /* ────────────────────────────────
+           왼쪽: 플라스틱 프레임 영역
+        ──────────────────────────────── */
+        .kit-frame-area {
+            flex: 1.1;
+            background: #e5e0d0; /* 크림색 플라스틱 느낌 */
+            border-right: 4px solid #000;
+            padding: 30px;
+            box-sizing: border-box;
+            position: relative;
+            min-height: 520px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* 카테고리 뱃지 */
+        .kit-category-badge {
+            position: absolute; top: 16px; left: 16px;
+            background: #000; color: #fff;
+            padding: 5px 14px; font-weight: 900; font-size: 13px;
+            letter-spacing: 1px;
+        }
+
+        /* ── 플라스틱 프레임 (스프루 모형 키트 스타일) ── */
+        .sprue-frame {
+            width: 100%;
+            max-width: 460px;
+            aspect-ratio: 1 / 1;
+            background: #ddd8c4;
+            border: 6px solid #c5bfab;
+            border-radius: 14px;
+            position: relative;
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            /* 안쪽 격자 선 효과 */
+            box-shadow: inset 0 0 0 2px #c5bfab, 0 4px 12px rgba(0,0,0,0.12);
+        }
+
+        /* 프레임 격자 칸 */
+        .sprue-cell {
+            border: 2px solid #c5bfab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 12px;
+            box-sizing: border-box;
+            position: relative;
+            transition: background 0.2s;
+            cursor: pointer;
+        }
+        .sprue-cell:hover { background: rgba(255,255,255,0.25); }
+
+        /* 아이템 이미지 */
+        .sprue-cell img {
+            width: 85%;
+            height: 85%;
+            object-fit: contain;
+            transition: opacity 0.35s, filter 0.35s, transform 0.3s;
+            filter: drop-shadow(3px 3px 4px rgba(0,0,0,0.2));
+        }
+        /* 이미지 없을 때 이모지 */
+        .sprue-emoji {
+            font-size: 52px;
+            transition: opacity 0.35s, filter 0.35s;
+            user-select: none;
+        }
+
+        /* 제거된 아이템 → 흑백 + 반투명 */
+        .sprue-cell.removed img,
+        .sprue-cell.removed .sprue-emoji {
+            opacity: 0.2;
+            filter: grayscale(1) drop-shadow(none);
+        }
+        .sprue-cell.removed {
+            background: rgba(0,0,0,0.04);
+        }
+
+        /* 아이템 번호 라벨 (모형 키트 느낌) */
+        .sprue-label {
+            position: absolute;
+            bottom: 5px; right: 8px;
+            font-size: 10px; font-weight: 900;
+            color: #a09884; letter-spacing: 1px;
+        }
+
+        /* ────────────────────────────────
+           오른쪽: 정보 패널
+        ──────────────────────────────── */
+        .kit-info-panel {
+            width: 360px;
+            flex-shrink: 0;
+            padding: 36px 28px;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+
+        .kit-sport-tag {
+            display: inline-block;
+            background: #D4ED00;
+            border: 2px solid #000;
+            padding: 4px 14px;
+            font-weight: 900; font-size: 11px;
+            letter-spacing: 1px;
+            margin-bottom: 10px; width: fit-content;
+        }
+        .kit-title {
+            font-size: 26px; font-weight: 900;
+            text-transform: uppercase;
+            line-height: 1.15;
+            margin: 0 0 6px;
+        }
+        .kit-subtitle {
+            font-size: 13px; color: #666;
+            margin-bottom: 20px; font-weight: 600;
+            line-height: 1.6;
+        }
+        .min-notice {
+            font-size: 12px; color: #FF5A10;
+            font-weight: 900; margin-bottom: 14px;
+        }
+
+        /* 아이템 토글 리스트 */
+        .item-list { flex: 1; }
+        .kit-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .kit-item:last-child { border-bottom: none; }
+
+        .kit-item-left { flex: 1; }
+        .kit-item-name {
+            font-weight: 900; font-size: 14px;
+        }
+        .kit-item-price {
+            font-size: 12px; color: #888; font-weight: 700;
+        }
+
+        /* 사이즈 선택 드롭다운 */
+        .size-select {
+            width: 100%;
+            padding: 4px 6px;
+            border: 2px solid #000;
+            background: #fff;
+            font-family: inherit;
+            font-size: 12px;
+            font-weight: 700;
+            margin-top: 5px;
+            cursor: pointer;
+        }
+
+        /* 토글 버튼 */
+        .toggle-btn {
+            padding: 6px 12px;
+            border: 2px solid #000;
+            font-weight: 900; font-size: 11px;
+            cursor: pointer;
+            background: #000; color: #fff;
+            transition: 0.1s;
+            font-family: inherit;
+            box-shadow: 2px 2px 0 #555;
+            white-space: nowrap;
+        }
+        .toggle-btn:active { transform: translate(2px, 2px); box-shadow: none; }
+        .toggle-btn.removed {
+            background: #fff; color: #000;
+        }
+
+        /* 가격 영역 */
+        .price-row {
+            border-top: 3px solid #000;
+            padding-top: 16px;
+            margin-top: 10px;
+        }
+        .price-label { font-size: 13px; font-weight: 900; color: #555; }
+        .price-amount {
+            font-size: 30px; font-weight: 900;
+            margin: 4px 0 16px;
+        }
+
+        /* 버튼 그룹 */
+        .kit-btn-group { display: flex; gap: 8px; margin-bottom: 10px; }
+        .kit-btn {
+            flex: 1; padding: 12px 8px;
+            border: 3px solid #000; font-weight: 900;
+            font-size: 13px; cursor: pointer;
+            transition: 0.1s; font-family: inherit;
+            box-shadow: 4px 4px 0 #000;
+        }
+        .kit-btn:active { transform: translate(3px, 3px); box-shadow: none; }
+        .kit-btn.wish { background: #fff; color: #000; }
+        .kit-btn.wish:hover { background: #FF5A10; color: #fff; border-color: #FF5A10; }
+        .kit-btn.buy {
+            width: 100%;
+            display: block;
+            padding: 14px;
+            background: #000; color: #fff;
+            border: 3px solid #000;
+            font-weight: 900; font-size: 15px;
+            cursor: pointer; font-family: inherit;
+            box-shadow: 4px 4px 0 #555;
+            transition: 0.1s;
+        }
+        .kit-btn.buy:hover { background: #D4ED00; color: #000; }
+        .kit-btn.buy:active { transform: translate(3px,3px); box-shadow: none; }
+
+        /* ────────────────────────────────
+           하단 탭 섹션
+        ──────────────────────────────── */
+        .kit-tabs {
+            display: flex; gap: 12px;
+            margin: 40px 0 20px; flex-wrap: wrap;
+        }
+        .kit-tab-btn {
+            padding: 10px 22px; font-size: 13px;
+            font-weight: 900; text-transform: uppercase;
+            background: #fff; border: 3px solid #000;
+            box-shadow: 4px 4px 0 #000; cursor: pointer;
+            border-radius: 50px; font-family: inherit;
+            transition: 0.1s;
+        }
+        .kit-tab-btn:hover { background: #D4ED00; }
+        .kit-tab-btn:active { transform: translate(2px,2px); box-shadow: none; }
+
+        /* 리뷰 / 상세 섹션 */
+        .kit-section {
+            background: #fff;
+            border: 4px solid #000;
+            box-shadow: 8px 8px 0 #000;
+            padding: 28px;
+            margin-bottom: 30px;
+        }
+        .kit-section h3 {
+            font-size: 18px; font-weight: 900;
+            text-transform: uppercase;
+            border-bottom: 3px solid #000;
+            padding-bottom: 10px; margin: 0 0 16px;
+        }
+        .review-item {
+            border-bottom: 1px dashed #ccc;
+            padding: 12px 0; font-family: sans-serif;
+            font-size: 14px; line-height: 1.6;
+        }
+        .review-item:last-child { border-bottom: none; }
+        .review-item strong { font-family: 'Arial Black', sans-serif; }
+
+        /* 상태 박스 */
+        .state-box {
+            text-align: center; padding: 80px 20px;
+            font-size: 18px; font-weight: 900; color: #aaa;
+        }
+
+        /* 모바일 반응형 */
+        @media (max-width: 768px) {
+            .kit-main { flex-direction: column; }
+            .kit-info-panel { width: 100%; }
+            .sprue-frame { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<div class="kit-wrapper">
+    <a class="back-btn" onclick="history.back()">← 뒤로가기</a>
+    <div id="kit-content">
+        <div class="state-box">키트 정보를 불러오는 중...</div>
+    </div>
+</div>
+
+<div id="footer-container"></div>
+
+<script>
+// ────────────────────────────────────────────────────────
+//  카테고리별 키트 구성 설정
+//  → 나중에 이미지가 준비되면 img 파일명만 바꾸면 됩니다!
+// ────────────────────────────────────────────────────────
+const KIT_CONFIG = {
+    RUNNING: {
+        title: '러닝 스타터 키트',
+        subtitle: '오늘부터 달리기! 초보 러너를 위한 필수 패키지',
+        sportTag: 'RUNNING',
+        minItems: 3,
+        items: [
+            {
+                id: 'shoes', name: '러닝화', price: 80000,
+                img: 'running_shoes.png', emoji: '👟',
+                sizes: ['230mm','240mm','250mm','260mm','270mm','280mm']
+            },
+            {
+                id: 'watch', name: 'GPS 워치', price: 50000,
+                img: 'smart_watch.png', emoji: '⌚'
+            },
+            {
+                id: 'belt', name: '러닝 벨트', price: 15000,
+                img: 'running_belt.png', emoji: '🎽'
+            },
+            {
+                id: 'cap', name: '러닝 캡', price: 10000,
+                img: 'running_hat.png', emoji: '🧢'
+            },
+            {
+                id: 'top', name: '러닝 상의', price: 20000,
+                img: 'running_top.png', emoji: '👕',
+                sizes: ['S','M','L','XL']
+            },
+            {
+                id: 'pants', name: '러닝 하의', price: 15000,
+                img: 'running_pants.png', emoji: '👖',
+                sizes: ['S','M','L','XL']
+            }
+        ],
+        reviews: [
+            { star: 5, name: '최OO', text: '러닝화가 정말 가볍고 GPS워치로 기록 확인하니 동기부여가 돼요!' },
+            { star: 4, name: '정OO', text: '가성비 좋은 구성입니다. 벨트가 생각보다 편하네요. 흔들리지 않아요.' },
+            { star: 5, name: '한OO', text: '무릎 무리 안 가게 입문용으로 딱 좋은 신발이 들어있어요. 강추!' }
+        ]
+    },
+    SOCCER: {
+        title: '축구 스타터 키트',
+        subtitle: '필드를 지배하라! 초보 축구 입문자를 위한 필수 패키지',
+        sportTag: 'SOCCER',
+        minItems: 3,
+        items: [
+            { id: 'boots',   name: '축구화',     price: 90000, emoji: '⚽' },
+            { id: 'jersey',  name: '유니폼 상의', price: 35000, emoji: '👕', sizes: ['S','M','L','XL'] },
+            { id: 'shorts',  name: '유니폼 하의', price: 25000, emoji: '🩳', sizes: ['S','M','L','XL'] },
+            { id: 'shin',    name: '정강이 보호대', price: 15000, emoji: '🦵' },
+            { id: 'socks',   name: '축구 양말',   price: 8000,  emoji: '🧦', sizes: ['S','M','L'] },
+            { id: 'gloves',  name: '골키퍼 장갑', price: 30000, emoji: '🧤' }
+        ],
+        reviews: [
+            { star: 5, name: '김OO', text: '축구화 착화감이 너무 좋아요! 첫 경기에서 2골 넣었어요.' },
+            { star: 4, name: '이OO', text: '유니폼 원단이 땀 흡수가 잘 돼서 여름에도 시원해요.' }
+        ]
+    },
+    BASKETBALL: {
+        title: '농구 스타터 키트',
+        subtitle: '코트를 장악하라! 초보 농구 입문자를 위한 필수 패키지',
+        sportTag: 'BASKETBALL',
+        minItems: 3,
+        items: [
+            { id: 'shoes',  name: '농구화',     price: 95000, emoji: '👟', sizes: ['240mm','250mm','260mm','270mm','280mm','290mm'] },
+            { id: 'jersey', name: '농구 저지',  price: 40000, emoji: '🏀', sizes: ['S','M','L','XL'] },
+            { id: 'shorts', name: '농구 쇼츠',  price: 28000, emoji: '🩳', sizes: ['S','M','L','XL'] },
+            { id: 'band',   name: '헤드밴드',   price: 8000,  emoji: '👑' },
+            { id: 'knee',   name: '무릎 보호대', price: 18000, emoji: '🦵' },
+            { id: 'socks',  name: '농구 양말',  price: 10000, emoji: '🧦', sizes: ['S','M','L'] }
+        ],
+        reviews: [
+            { star: 5, name: '박OO', text: '농구화 쿠셔닝이 발목 보호에 정말 좋습니다!' },
+            { star: 4, name: '최OO', text: '저지 소재가 통기성이 좋아서 격렬하게 뛰어도 쾌적해요.' }
+        ]
+    },
+    BASEBALL: {
+        title: '야구 스타터 키트',
+        subtitle: '다이아몬드의 전설! 초보 야구 입문자를 위한 필수 패키지',
+        sportTag: 'BASEBALL',
+        minItems: 3,
+        items: [
+            { id: 'cleats',  name: '야구화(스파이크)', price: 85000, emoji: '⚾', sizes: ['240mm','250mm','260mm','270mm','280mm'] },
+            { id: 'glove',   name: '야구 글러브',     price: 60000, emoji: '🥊' },
+            { id: 'bat',     name: '알루미늄 배트',   price: 55000, emoji: '🏏' },
+            { id: 'helmet',  name: '타격 헬멧',       price: 35000, emoji: '⛑️' },
+            { id: 'uniform', name: '유니폼 세트',     price: 45000, emoji: '👕', sizes: ['S','M','L','XL'] },
+            { id: 'socks',   name: '야구 양말',       price: 8000,  emoji: '🧦' }
+        ],
+        reviews: [
+            { star: 5, name: '한OO', text: '글러브 가죽이 부드러워서 공을 잡을 때 느낌이 좋아요!' },
+            { star: 5, name: '윤OO', text: '입문용으로 배트 무게가 딱 적당합니다.' }
+        ]
+    },
+    VOLLEYBALL: {
+        title: '배구 스타터 키트',
+        subtitle: '스파이크의 짜릿함! 초보 배구 입문자를 위한 필수 패키지',
+        sportTag: 'VOLLEYBALL',
+        minItems: 3,
+        items: [
+            { id: 'shoes',  name: '배구화',     price: 75000, emoji: '👟', sizes: ['230mm','240mm','250mm','260mm','270mm','280mm'] },
+            { id: 'jersey', name: '배구 저지',  price: 35000, emoji: '🏐', sizes: ['S','M','L','XL'] },
+            { id: 'shorts', name: '배구 반바지', price: 22000, emoji: '🩳', sizes: ['S','M','L','XL'] },
+            { id: 'knee',   name: '무릎 보호대', price: 18000, emoji: '🦵' },
+            { id: 'elbow',  name: '팔꿈치 보호대', price: 15000, emoji: '💪' },
+            { id: 'socks',  name: '배구 양말',  price: 8000,  emoji: '🧦', sizes: ['S','M','L'] }
+        ],
+        reviews: [
+            { star: 5, name: '서OO', text: '무릎 보호대 덕분에 리시브 연습 때 정말 편해요!' },
+            { star: 4, name: '강OO', text: '배구화 바닥 그립이 좋아서 미끄러지지 않아요.' }
+        ]
+    },
+    HEALTH: {
+        title: '헬스 스타터 키트',
+        subtitle: '매일 성장하라! 초보 헬스 입문자를 위한 필수 패키지',
+        sportTag: 'HEALTH',
+        minItems: 3,
+        items: [
+            { id: 'shoes',  name: '트레이닝화',   price: 70000, emoji: '👟', sizes: ['230mm','240mm','250mm','260mm','270mm','280mm'] },
+            { id: 'gloves', name: '헬스 장갑',    price: 18000, emoji: '🧤' },
+            { id: 'belt',   name: '리프팅 벨트',  price: 35000, emoji: '🥋', sizes: ['S','M','L','XL'] },
+            { id: 'top',    name: '헬스 상의',    price: 25000, emoji: '👕', sizes: ['S','M','L','XL'] },
+            { id: 'pants',  name: '헬스 하의',    price: 22000, emoji: '🩳', sizes: ['S','M','L','XL'] },
+            { id: 'bottle', name: '프로틴 쉐이커', price: 12000, emoji: '🥤' }
+        ],
+        reviews: [
+            { star: 5, name: '오OO', text: '리프팅 벨트 사이즈가 딱 맞고 허리 지지가 확실해요!' },
+            { star: 4, name: '김OO', text: '헬스 장갑이 손바닥 굳은살 방지에 정말 좋아요.' }
+        ]
+    }
+};
+
+// ────────────────────────────────────────────────────────
+//  전역 변수
+// ────────────────────────────────────────────────────────
+let kitConfig = null;   // 현재 카테고리의 config
+let itemState  = {};    // { shoes: true, watch: true, ... }  true = 포함됨
+
+// ────────────────────────────────────────────────────────
+//  초기화
+// ────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+    await loadLayout();
+
+    // URL에서 ?category=RUNNING 읽기
+    const params   = new URLSearchParams(window.location.search);
+    const category = (params.get('category') || '').toUpperCase();
+
+    if (!category || !KIT_CONFIG[category]) {
+        document.getElementById('kit-content').innerHTML =
+            '<div class="state-box">😢 해당 카테고리를 찾을 수 없습니다.<br><br><a class="back-btn" onclick="history.back()">← 뒤로가기</a></div>';
+        return;
+    }
+
+    kitConfig = KIT_CONFIG[category];
+
+    // 모든 아이템을 처음에는 "포함" 상태로 초기화
+    kitConfig.items.forEach(it => { itemState[it.id] = true; });
+
+    // 페이지 제목 업데이트
+    document.title = `READY PLAY! - ${kitConfig.title}`;
+
+    // 렌더링
+    renderKitPage();
+});
+
+// ────────────────────────────────────────────────────────
+//  전체 페이지 렌더링
+// ────────────────────────────────────────────────────────
+function renderKitPage() {
+    const content = document.getElementById('kit-content');
+    content.innerHTML = `
+        <!-- 메인 카드 -->
+        <div class="kit-main">
+            <!-- 왼쪽: 플라스틱 프레임 -->
+            <div class="kit-frame-area">
+                <span class="kit-category-badge">${kitConfig.sportTag}</span>
+                <div class="sprue-frame" id="sprue-frame">
+                    ${renderSprueItems()}
+                </div>
+            </div>
+
+            <!-- 오른쪽: 정보 패널 -->
+            <div class="kit-info-panel">
+                <span class="kit-sport-tag">${kitConfig.sportTag} STARTER KIT</span>
+                <h1 class="kit-title">${kitConfig.title}</h1>
+                <p class="kit-subtitle">${kitConfig.subtitle}</p>
+                <p class="min-notice">※ 최소 ${kitConfig.minItems}개 이상 구성품을 선택해야 합니다</p>
+
+                <div class="item-list" id="item-list">
+                    ${renderItemList()}
+                </div>
+
+                <div class="price-row">
+                    <div class="price-label">선택한 구성품 합계</div>
+                    <div class="price-amount">₩ <span id="kit-total">${calcTotal().toLocaleString()}</span></div>
+                    <div class="kit-btn-group">
+                        <button class="kit-btn wish" onclick="doWishlist()">♥ 찜하기</button>
+                        <button class="kit-btn" style="background:#fff;" onclick="doAddToCart()">🛒 장바구니</button>
+                    </div>
+                    <button class="kit-btn buy" onclick="doDirectOrder()">구매하기 →</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 탭 버튼 -->
+        <div class="kit-tabs">
+            <button class="kit-tab-btn" onclick="scrollToAnchor('reviews')">리뷰 (${kitConfig.reviews.length})</button>
+            <button class="kit-tab-btn" onclick="scrollToAnchor('shipping')">배송/환불</button>
+        </div>
+
+        <!-- 리뷰 섹션 -->
+        <div class="kit-section" id="reviews">
+            <h3>리뷰 (${kitConfig.reviews.length})</h3>
+            ${kitConfig.reviews.map(r =>
+                `<div class="review-item">
+                    ${'⭐'.repeat(r.star)} <strong>${r.name}</strong><br>${r.text}
+                </div>`
+            ).join('')}
+        </div>
+
+        <!-- 배송/환불 섹션 -->
+        <div class="kit-section" id="shipping">
+            <h3>배송 및 환불 안내</h3>
+            <p style="font-family: sans-serif; font-size: 14px; line-height: 1.8; color: #555;">
+                결제 완료 후 1~3일 내에 출고됩니다.<br>
+                제주/도서 산간 지역은 추가 배송비(3,000원)가 발생합니다.<br>
+                수령 후 7일 이내 교환/반품 가능합니다 (단, 사용 제품 불가).<br>
+                사이즈 교환 시 왕복 배송비 고객 부담입니다.
+            </p>
+        </div>
+    `;
+}
+
+// ────────────────────────────────────────────────────────
+//  플라스틱 프레임 아이템 셀 렌더링
+// ────────────────────────────────────────────────────────
+function renderSprueItems() {
+    return kitConfig.items.map((item, idx) => {
+        const isIncluded = itemState[item.id];
+        const imgContent = item.img
+            ? `<img src="${item.img}" alt="${item.name}"
+                    onerror="this.style.display='none'; this.nextElementSibling.style.display='block'">
+               <div class="sprue-emoji" style="display:none">${item.emoji}</div>`
+            : `<div class="sprue-emoji">${item.emoji}</div>`;
+
+        return `
+            <div class="sprue-cell ${isIncluded ? '' : 'removed'}"
+                 id="cell-${item.id}"
+                 onclick="toggleItem('${item.id}')"
+                 title="${item.name}">
+                ${imgContent}
+                <span class="sprue-label">${idx + 1}</span>
+            </div>
+        `;
+    }).join('');
+}
+
+// ────────────────────────────────────────────────────────
+//  오른쪽 아이템 리스트 렌더링
+// ────────────────────────────────────────────────────────
+function renderItemList() {
+    return kitConfig.items.map(item => {
+        const isIncluded = itemState[item.id];
+        const sizeHtml = item.sizes
+            ? `<select class="size-select" id="size-${item.id}">
+                   <option value="">사이즈 선택</option>
+                   ${item.sizes.map(s => `<option>${s}</option>`).join('')}
+               </select>`
+            : '';
+
+        return `
+            <div class="kit-item" id="listitem-${item.id}"
+                 style="opacity: ${isIncluded ? '1' : '0.4'}">
+                <div class="kit-item-left">
+                    <div class="kit-item-name">${item.emoji} ${item.name}</div>
+                    <div class="kit-item-price">₩ ${item.price.toLocaleString()}</div>
+                    ${sizeHtml}
+                </div>
+                <button class="toggle-btn ${isIncluded ? '' : 'removed'}"
+                        id="toggle-${item.id}"
+                        onclick="toggleItem('${item.id}')">
+                    ${isIncluded ? '제거' : '추가'}
+                </button>
+            </div>
+        `;
+    }).join('');
+}
+
+// ────────────────────────────────────────────────────────
+//  아이템 토글 (포함 ↔ 제거)
+// ────────────────────────────────────────────────────────
+function toggleItem(itemId) {
+    // 현재 포함된 아이템 수 확인
+    const includedCount = Object.values(itemState).filter(v => v).length;
+    const willBeRemoved = itemState[itemId] === true;
+
+    // 최소 개수 미만으로 줄이려 할 때 차단
+    if (willBeRemoved && includedCount <= kitConfig.minItems) {
+        alert(`최소 ${kitConfig.minItems}개 이상의 구성품을 선택해야 합니다!`);
+        return;
+    }
+
+    // 상태 변경
+    itemState[itemId] = !itemState[itemId];
+    const isIncluded = itemState[itemId];
+
+    // 스프루 프레임 셀 업데이트
+    const cell = document.getElementById(`cell-${itemId}`);
+    if (cell) {
+        isIncluded ? cell.classList.remove('removed') : cell.classList.add('removed');
+    }
+
+    // 리스트 아이템 업데이트
+    const listItem = document.getElementById(`listitem-${itemId}`);
+    if (listItem) listItem.style.opacity = isIncluded ? '1' : '0.4';
+
+    // 토글 버튼 텍스트 + 스타일 업데이트
+    const btn = document.getElementById(`toggle-${itemId}`);
+    if (btn) {
+        btn.innerText = isIncluded ? '제거' : '추가';
+        isIncluded ? btn.classList.remove('removed') : btn.classList.add('removed');
+    }
+
+    // 총 금액 업데이트
+    document.getElementById('kit-total').innerText = calcTotal().toLocaleString();
+}
+
+// ────────────────────────────────────────────────────────
+//  총 금액 계산
+// ────────────────────────────────────────────────────────
+function calcTotal() {
+    if (!kitConfig) return 0;
+    return kitConfig.items
+        .filter(item => itemState[item.id])
+        .reduce((sum, item) => sum + item.price, 0);
+}
+
+// ────────────────────────────────────────────────────────
+//  선택된 아이템 + 사이즈 가져오기
+// ────────────────────────────────────────────────────────
+function getSelectedItems() {
+    return kitConfig.items
+        .filter(item => itemState[item.id])
+        .map(item => {
+            const sizeEl = document.getElementById(`size-${item.id}`);
+            const size = sizeEl ? sizeEl.value : '';
+            return { ...item, selectedSize: size };
+        });
+}
+
+// ────────────────────────────────────────────────────────
+//  찜하기
+// ────────────────────────────────────────────────────────
+function doWishlist() {
+    const selected = getSelectedItems();
+    if (selected.length < kitConfig.minItems) {
+        alert(`최소 ${kitConfig.minItems}개 이상 선택해야 합니다!`);
+        return;
+    }
+    const total = calcTotal();
+    // common.js의 addToWishlist() 호출
+    addToWishlist(
+        kitConfig.title,
+        total.toLocaleString() + '원',
+        kitConfig.sportTag,
+        kitConfig.items[0]?.img || ''
+    );
+}
+
+// ────────────────────────────────────────────────────────
+//  장바구니 담기
+// ────────────────────────────────────────────────────────
+function doAddToCart() {
+    const selected = getSelectedItems();
+    if (selected.length < kitConfig.minItems) {
+        alert(`최소 ${kitConfig.minItems}개 이상 선택해야 합니다!`);
+        return;
+    }
+
+    // 사이즈 미선택 항목 체크
+    const noSize = selected.find(it => it.sizes && it.sizes.length > 0 && !it.selectedSize);
+    if (noSize) {
+        alert(`"${noSize.name}"의 사이즈를 선택해 주세요!`);
+        return;
+    }
+
+    const total = calcTotal();
+    const options = selected.map(it => it.name + (it.selectedSize ? `(${it.selectedSize})` : '')).join(', ');
+
+    // sessionStorage에 저장 (cart.html, orderform.html과 공유)
+    let cart = JSON.parse(sessionStorage.getItem('OrderTemp')) || [];
+    cart.push({
+        name:  kitConfig.title,
+        price: total,
+        qty:   1,
+        img:   kitConfig.items[0]?.img || '',
+        options: options
+    });
+    sessionStorage.setItem('OrderTemp', JSON.stringify(cart));
+
+    if (confirm(`"${kitConfig.title}" 이(가) 장바구니에 담겼습니다!\n장바구니로 이동하시겠습니까?`)) {
+        location.href = 'cart.html';
+    }
+}
+
+// ────────────────────────────────────────────────────────
+//  바로 구매하기
+// ────────────────────────────────────────────────────────
+function doDirectOrder() {
+    const selected = getSelectedItems();
+    if (selected.length < kitConfig.minItems) {
+        alert(`최소 ${kitConfig.minItems}개 이상 선택해야 합니다!`);
+        return;
+    }
+    const noSize = selected.find(it => it.sizes && it.sizes.length > 0 && !it.selectedSize);
+    if (noSize) {
+        alert(`"${noSize.name}"의 사이즈를 선택해 주세요!`);
+        return;
+    }
+
+    const total = calcTotal();
+    const options = selected.map(it => it.name + (it.selectedSize ? `(${it.selectedSize})` : '')).join(', ');
+
+    // 장바구니에 담은 뒤 주문 페이지로 이동
+    let cart = JSON.parse(sessionStorage.getItem('OrderTemp')) || [];
+    cart.push({
+        name:  kitConfig.title,
+        price: total,
+        qty:   1,
+        img:   kitConfig.items[0]?.img || '',
+        options: options
+    });
+    sessionStorage.setItem('OrderTemp', JSON.stringify(cart));
+    location.href = 'orderform.html';
+}
+
+// ────────────────────────────────────────────────────────
+//  스크롤 이동
+// ────────────────────────────────────────────────────────
+function scrollToAnchor(id) {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+</script>
+</body>
+</html>

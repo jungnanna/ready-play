@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ready Play! - 러닝 입문 키트</title>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Arial Black', sans-serif;
+            /* padding-top: 320px; → common.css에서 var(--header-h: 100px)으로 통일 */
+            overflow-x: hidden;
+            background:#f0f0f0;
+        }
+        .container { 
+            width: 1100px; 
+            margin: 80px auto 40px auto; 
+            background: white; 
+            padding: 30px; 
+            border: 3px solid #000; 
+            box-shadow: 8px 8px 0px #000; 
+            box-sizing: border-box; 
+        }
+
+        .detail-grid img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 10px auto;
+        }
+        
+        .top { display:flex; border:3px solid #000; align-items: stretch; }
+        
+        .product-img { 
+            width: 60%; 
+            min-height: 650px; 
+            border-right: 3px solid #000; 
+            padding: 0; 
+            box-sizing: border-box; 
+            background-color: #f0f0f0; 
+            background-image: url('system insert.png'); 
+            background-size: 100% 100%; 
+            background-repeat: no-repeat; 
+            background-position: center;
+            position: relative; 
+            overflow: hidden; 
+            --img-size: 230px; 
+        }
+
+        .product-img img { 
+            position: absolute; 
+            width: var(--img-size); 
+            height: var(--img-size); 
+            object-fit: contain; 
+            transition: 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            filter: drop-shadow(5px 5px 0px rgba(0,0,0,0.1));
+            z-index: 2; 
+        }
+
+        #shoes { top: 14%; left: 2%; }
+        #watch { top: 30%; left: 25%; }
+        #belt  { top: 20%; left: 56%; }
+        #socks { bottom: 20%; left: 2%; }
+        #uniform { bottom: 20%; left: 53%; }
+
+        .product-img img:hover { transform: scale(1.15) rotate(5deg); z-index: 10; }
+        
+        .product-info { width:40%; padding:20px; box-sizing: border-box; }
+        .product-info h2 { margin-bottom:20px; }
+        .item { border-bottom:2px dashed #000; padding:20px 0; } 
+        .item-top { display:flex; justify-content:space-between; align-items: center; }
+        .option select { width:100%; padding:6px; border:2px solid #000; margin-top: 10px; font-family: sans-serif; }
+        .price { margin-top:20px; font-size:20px; font-weight:bold; }
+        
+        button { border:2px solid #000; background:white; cursor:pointer; box-shadow:4px 4px 0px #000; transition: 0.1s; font-family: 'Arial Black', sans-serif; }
+        button:active { transform:translate(4px,4px); box-shadow:0 0 0; }
+        
+        .btn-group { display:flex; gap:10px; margin-top:15px; }
+        .btn { flex:1; padding:10px; font-weight: bold; }
+        .buy { width:100%; margin-top:10px; padding:12px; background:black; color:white; font-weight: bold; font-size: 16px; }
+
+        .tab-group { display: flex; gap: 15px; margin: 40px 0 20px 0; flex-wrap: wrap; }
+        .tab-btn { padding: 12px 25px; font-size: 14px; font-weight: 900; text-transform: uppercase; background: #fff; border: 3px solid #000; box-shadow: 4px 4px 0px #000; cursor: pointer; border-radius: 50px; }
+        .tab-btn:hover { background: #bcbcbc; }
+
+        .review-section { margin-top:20px; border:3px solid #000; padding:20px; box-shadow:6px 6px 0px #000; background: #fff; }
+        .review { border-bottom:1px dashed #000; padding:15px 0; font-family: sans-serif; }
+        .review b { font-family: 'Arial Black', sans-serif; }
+
+        .detail-grid { margin-top:40px; display:grid; grid-template-columns:1fr 1fr; gap:30px; }
+        .box { border:3px solid #000; padding:20px; background:white; box-shadow:6px 6px 0px #000; box-sizing: border-box; }
+        .large { grid-column:span 2; }
+
+        #cartSidebar { position: fixed; top: 0; right: -450px; width: 380px; height: 100vh; background: #fff; border-left: 4px solid #000; display: flex; flex-direction: column; padding: 25px; box-sizing: border-box; box-shadow: -10px 0 30px rgba(0,0,0,0.2); z-index: 2000; transition: right 0.4s cubic-bezier(0.075, 0.82, 0.165, 1); }
+        #cartSidebar.open { right: 0; }
+        .cart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .cart-items-container { flex: 1; overflow-y: auto; display: flex; flex-direction: column; }
+        .c-item { display: flex; gap: 15px; margin-bottom: 25px; position: relative; font-family: sans-serif; }
+        
+        .cart-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; z-index: 1500; }
+
+        .top-btn { position: fixed; bottom: 40px; right: 40px; width: 60px; height: 60px; background: #ffffff; color: #000000; border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 24px; border: 3px solid #000; box-shadow: 6px 6px 0px #000000; cursor: pointer; z-index: 1000; transition: 0.3s; opacity: 0; visibility: hidden; }
+        .top-btn.show { opacity: 1; visibility: visible; }
+
+        .slider-container { position: relative; width: 100%; margin: 20px 0; display: flex; align-items: center; gap: 15px; flex-direction: column; }
+        .slider-main { display: flex; align-items: center; width: 100%; gap: 15px; }
+        .slider-viewport { flex: 1; overflow: hidden; border: 3px solid #000; }
+        .slider-wrapper { display: flex; transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1); }
+        .slider-wrapper img { width: 100%; flex-shrink: 0; display: block; }
+        .slider-btn { background: #fff; border: 3px solid #000; padding: 10px; cursor: pointer; font-size: 18px; font-weight: bold; box-shadow: 4px 4px 0px #000; border-radius: 50%; width: 45px; height: 45px; display: flex; align-items: center; justify-content: center; }
+        .slider-btn:active { transform: translate(2px, 2px); box-shadow: 0 0 0; }
+
+        .slider-dots { display: flex; gap: 10px; margin-top: 15px; }
+        .dot { width: 12px; height: 12px; background: #fff; border: 2px solid #000; border-radius: 50%; cursor: pointer; transition: 0.3s; }
+        .dot.active { background: #000; transform: scale(1.2); }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+<div class="top-btn" id="scrollTopBtn" onclick="scrollToTop()">↑</div>
+<div class="cart-overlay" id="cartOverlay" onclick="toggleCart()"></div>
+
+<div id="cartSidebar">
+    <div class="cart-header">
+        <div style="font-size: 28px; font-weight: 900;">Cart</div>
+        <div style="font-size: 30px; cursor: pointer;" onclick="toggleCart()">×</div>
+    </div>
+    <div class="cart-items-container" id="cartItems">
+        <div style="text-align: center; padding: 100px 0; color: #ccc;">장바구니가 비어있습니다.</div>
+    </div>
+    <div style="border-top: 2px solid #000; padding-top: 15px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 10px;">
+            <span>결제예정금액</span>
+            <span id="cTotalAmt" style="font-weight: 900;">0원</span>
+        </div>
+        <button class="buy" onclick="location.href='cart.html'">장바구니 페이지로</button>
+    </div>
+</div>
+
+<div class="container">
+    <div class="top">
+        <div class="product-img" id="captureArea">
+            <img src="running_shoes.png" id="shoes" alt="러닝화">
+            <img src="smart_watch.png" id="watch" alt="스마트 워치">
+            <img src="running_belt.png" id="belt" alt="러닝 벨트">
+            <img src="running hat.png" id="socks" alt="러닝 모자">
+            <img src="apparel.png" id="uniform" alt="의류">
+        </div>
+       
+        <div class="product-info">
+            <h2>러닝 스타터 키트</h2>
+            <p>오늘부터 달리기 시작! 초보 러너를 위한 필수 패키지</p>
+            <p style="color:red; font-size:13px;">※ 최소 3개 구성품 선택</p>
+
+            <div class="item" data-price="80000" data-name="shoes">
+                <div class="item-top"><span>러닝화</span><button class="toggle included">제거</button></div>
+                <div class="option">
+                    <select class="size-select"><option value="미선택">사이즈 선택</option><option>230</option><option>240</option><option>250</option><option>260</option><option>270</option><option>280</option></select>
+                </div>
+            </div>
+            <div class="item" data-price="50000" data-name="watch">
+                <div class="item-top"><span>스마트 워치</span><button class="toggle included">제거</button></div>
+            </div>
+            <div class="item" data-price="15000" data-name="belt">
+                <div class="item-top"><span>러닝 벨트</span><button class="toggle included">제거</button></div>
+            </div>
+            <div class="item" data-price="10000" data-name="socks">
+                <div class="item-top"><span>러닝 모자</span><button class="toggle included">제거</button></div>
+            </div>
+            <div class="item" data-price="35000" data-name="uniform">
+                <div class="item-top"><span>트레이닝복 세트</span><button class="toggle included">제거</button></div>
+                <div class="option">
+                    <select class="size-select"><option value="미선택">사이즈 선택</option><option>S</option><option>M</option><option>L</option><option>XL</option></select>
+                </div>
+            </div>
+
+            <div class="price">총 금액 ₩ <span id="total">190,000</span></div>
+            <div class="btn-group">
+                <button class="btn" onclick="addToWishlist()">찜</button> 
+                <button class="btn" onclick="addToCart()">장바구니</button>
+            </div>
+            <button class="buy" onclick="directOrder()">구매하기</button>
+        </div>
+    </div>
+
+    <div class="tab-group">
+        <button class="tab-btn" onclick="scrollToSection('review-anchor')">리뷰</button>
+        <button class="tab-btn" onclick="scrollToSection('size-guide')">사이즈 가이드</button>
+        <button class="tab-btn" onclick="scrollToSection('product-desc')">상세 정보</button>
+        <button class="tab-btn" onclick="scrollToSection('product-detail')">디테일 뷰</button>
+        <button class="tab-btn" onclick="scrollToSection('shipping-info')">배송/환불</button>
+    </div>
+
+    <div class="review-section" id="review-anchor">
+        <h3>리뷰 (3)</h3>
+        <div class="review">⭐⭐⭐⭐⭐ <b>최OO</b><br>러닝화가 정말 가볍고 스마트워치로 기록 확인하니 동기부여가 돼요!</div>
+        <div class="review">⭐⭐⭐⭐ <b>정OO</b><br>가성비 좋은 구성입니다. 벨트가 생각보다 편하네요. 흔들리지 않아요.</div>
+        <div class="review">⭐⭐⭐⭐⭐ <b>한OO</b><br>무릎 무리 안 가게 입문용으로 딱 좋은 신발이 들어있네요. 강추!</div>
+    </div>
+
+    <div class="detail-grid">
+        <div class="box" id="size-guide"><h3>러닝화 사이즈 가이드</h3><img src="shoes_size.png"></div>
+        <div class="box"><h3>의류 실측 사이즈</h3><img src="uniform_size.png"></div>
+        
+        <div class="box large" id="product-detail">
+            <h3>디테일 뷰</h3>
+            <div class="slider-container">
+                <div class="slider-main">
+                    <button class="slider-btn" onclick="moveSlider(-1)">❮</button>
+                    <div class="slider-viewport">
+                        <div class="slider-wrapper" id="sliderWrapper">
+                            <img src="detail_view1.png" alt="디테일1">
+                            <img src="detail_view2.png" alt="디테일2">
+                            <img src="detail_view3.png" alt="디테일3">
+                        </div>
+                    </div>
+                    <button class="slider-btn" onclick="moveSlider(1)">❯</button>
+                </div>
+                <div class="slider-dots" id="sliderDots">
+                    <div class="dot active" onclick="goToSlide(0)"></div>
+                    <div class="dot" onclick="goToSlide(1)"></div>
+                    <div class="dot" onclick="goToSlide(2)"></div>
+                </div>
+            </div>
+        </div>
+        <div class="box" id="notice-board">
+            <h3>공지사항</h3>
+            <ul style="font-family: sans-serif; line-height: 1.8; color: #333;">
+                <li>[공지] 제주/도서산간 지역 배송비 추가 안내</li>
+                <li>[이벤트] 포토리뷰 작성 시 3,000포인트 증정</li>
+            </ul>
+        </div>
+
+        <div class="box" id="shipping-info">
+            <h3>배송 및 환불 안내</h3>
+            <p style="font-family: sans-serif; font-size: 14px;">결제 완료 후 2~4일 소요됩니다.</p>
+        </div>
+    </div>
+</div>
+
+<div id="footer-container"></div>
+
+<script>
+    // loadLayout, updateLoginStatus → common.js에서 담당
+    // running.html의 addToWishlist()는 선택 항목 기반이라 페이지에서 그대로 유지
+    document.addEventListener('DOMContentLoaded', () => {
+        loadLayout();   // 헤더+푸터 로드 + 로그인 상태 반영
+        renderCart();   // 미니 장바구니 초기 렌더링
+    });
+
+    // 슬라이더 로직 생략 (기존과 동일)
+    let currentSlide = 0;
+    const wrapper = document.getElementById('sliderWrapper');
+    const dots = document.querySelectorAll('.dot');
+    function updateSlider() {
+        if(!wrapper) return;
+        wrapper.style.transform = `translateX(-${currentSlide * 100}%)`;
+        dots.forEach((dot, index) => { dot.classList.toggle('active', index === currentSlide); });
+    }
+    function moveSlider(direction) {
+        const totalSlides = dots.length;
+        currentSlide = (currentSlide + direction + totalSlides) % totalSlides;
+        updateSlider();
+    }
+    function goToSlide(index) { currentSlide = index; updateSlider(); }
+
+    let cart = JSON.parse(sessionStorage.getItem('Cart')) || [];
+    let wishlist = JSON.parse(sessionStorage.getItem('Wishlist')) || [];
+
+    function renderCart() {
+        const container = document.getElementById('cartItems');
+        if(!container) return;
+        container.innerHTML = '';
+        let total = 0;
+        if(cart.length === 0) {
+            container.innerHTML = '<div style="text-align: center; padding: 100px 0; color: #ccc;">장바구니가 비어있습니다.</div>';
+        } else {
+            cart.forEach((item, idx) => {
+                total += (item.price * item.qty);
+                const row = document.createElement('div');
+                row.className = 'c-item';
+                row.innerHTML = `<div style="flex:1"><b>${item.name}</b><br>${item.price.toLocaleString()}원</div><div onclick="deleteItem(${idx})" style="cursor:pointer">×</div>`;
+                container.appendChild(row);
+            });
+        }
+        const cTotalAmt = document.getElementById('cTotalAmt');
+        if(cTotalAmt) cTotalAmt.innerText = total.toLocaleString() + "원";
+    }
+
+    // 장바구니 추가 함수
+    function addToCart() {
+        const included = document.querySelectorAll('.item .included');
+        if (included.length < 3) { alert("최소 3개 이상의 구성품을 선택해야 합니다."); return; }
+        
+        let kitPrice = 0;
+        let selectedOptions = [];
+        included.forEach(btn => { 
+            const item = btn.closest('.item');
+            kitPrice += parseInt(item.dataset.price);
+            const name = item.querySelector('.item-top span').innerText;
+            const select = item.querySelector('.size-select');
+            const size = (select && select.value !== "미선택") ? `(${select.value})` : "";
+            selectedOptions.push(name + size);
+        });
+
+        cart.push({ 
+            id: Date.now(), 
+            name: "러닝 스타터 키트", 
+            price: kitPrice, 
+            qty: 1, 
+            img: "running_store.png",
+            options: selectedOptions.join(", ") 
+        });
+
+        sessionStorage.setItem('Cart', JSON.stringify(cart));
+        renderCart(); 
+        toggleCart();
+    }
+
+    // 찜하기(위시리스트) 추가 함수 [수정됨]
+    function addToWishlist() {
+        const included = document.querySelectorAll('.item .included');
+        if (included.length < 3) { alert("최소 3개 이상의 구성품을 선택해야 합니다."); return; }
+        
+        let kitPrice = 0;
+        let selectedOptions = [];
+        included.forEach(btn => { 
+            const item = btn.closest('.item');
+            kitPrice += parseInt(item.dataset.price);
+            const name = item.querySelector('.item-top span').innerText;
+            selectedOptions.push(name);
+        });
+
+        // 위시리스트 데이터 구조 생성
+        const wishItem = {
+            id: "wish_" + Date.now(),
+            name: "러닝 스타터 키트",
+            price: kitPrice,
+            img: "running_store.png", // 위시리스트에 표시될 대표 이미지
+            options: selectedOptions.join(", "),
+            date: new Date().toLocaleDateString()
+        };
+
+        wishlist.push(wishItem);
+        sessionStorage.setItem('Wishlist', JSON.stringify(wishlist));
+        
+        if(confirm("♥ 찜 목록에 추가되었습니다. 위시리스트 페이지로 이동하시겠습니까?")) {
+            location.href = "wishlist.html"; // 위시리스트 페이지 파일명에 맞춰 수정하세요
+        }
+    }
+
+    function toggleCart() {
+        const sb = document.getElementById('cartSidebar');
+        const ov = document.getElementById('cartOverlay');
+        if(sb && ov) {
+            sb.classList.toggle('open');
+            ov.style.display = sb.classList.contains('open') ? 'block' : 'none';
+        }
+    }
+
+    function deleteItem(idx) {
+        cart.splice(idx, 1);
+        sessionStorage.setItem('Cart', JSON.stringify(cart));
+        renderCart();
+    }
+
+    const totalEl = document.getElementById("total");
+    let currentTotal = 190000;
+    document.querySelectorAll(".toggle").forEach(btn => {
+        btn.onclick = function() {
+            const item = this.closest(".item");
+            const price = Number(item.dataset.price);
+            const img = document.getElementById(item.dataset.name);
+            if (this.classList.contains("included")) {
+                if (document.querySelectorAll(".included").length <= 3) { alert("최소 3개가 필요합니다."); return; }
+                this.classList.remove("included"); this.innerText = "포함"; currentTotal -= price;
+                if(img) img.style.opacity = "0.1";
+            } else {
+                this.classList.add("included"); this.innerText = "제거"; currentTotal += price;
+                if(img) img.style.opacity = "1";
+            }
+            if(totalEl) totalEl.innerText = currentTotal.toLocaleString();
+        }
+    });
+
+    function scrollToTop() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+    function scrollToSection(id) {
+        const el = document.getElementById(id);
+        if(el) window.scrollTo({ top: el.offsetTop - 180, behavior: 'smooth' });
+    }
+
+    // 바로 구매하기 함수
+function directOrder() {
+    const included = document.querySelectorAll('.item .included');
+    
+    // 1. 최소 수량 검증 (기존 로직 유지)
+    if (included.length < 3) { 
+        alert("최소 3개 이상의 구성품을 선택해야 합니다."); 
+        return; 
+    }
+    
+    let kitPrice = 0;
+    let selectedOptions = [];
+    
+    // 2. 선택된 항목 데이터 추출
+    included.forEach(btn => { 
+        const item = btn.closest('.item');
+        kitPrice += parseInt(item.dataset.price);
+        const name = item.querySelector('.item-top span').innerText;
+        const select = item.querySelector('.size-select');
+        const size = (select && select.value !== "미선택") ? `(${select.value})` : "";
+        selectedOptions.push(name + size);
+    });
+
+    // 3. 주문서로 넘길 단일 상품 객체 생성
+    const orderData = {
+        id: "direct_" + Date.now(),
+        name: "러닝 스타터 키트 (단품 주문)",
+        price: kitPrice,
+        qty: 1,
+        img: "running_store.png", // 대표 이미지
+        options: selectedOptions.join(", "),
+        type: "DIRECT_ORDER" // 주문서에서 장바구니와 구분하기 위한 플래그
+    };
+
+    // 4. SessionStorage에 'OrderTemp'라는 이름으로 저장
+    // (장바구니인 'Cart'와 분리하여 주문서에서 인식하게 함)
+    sessionStorage.setItem('OrderTemp', JSON.stringify([orderData]));
+
+    // 5. 주문서 페이지로 이동
+    location.href = 'orderform.html'; 
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>READY PLAY! - 공지사항</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        body { font-family: 'Arial Black', sans-serif; background: #f0f0f0; margin: 0; }
+
+        .page-wrap {
+            max-width: 900px;
+            margin: 60px auto;
+            padding: 0 20px 100px;
+        }
+
+        /* ── 페이지 헤더 ── */
+        .board-header {
+            background: #000;
+            color: #D4ED00;
+            padding: 30px 36px;
+            border: 4px solid #000;
+            box-shadow: 10px 10px 0 #000;
+            margin-bottom: 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+        .board-header h1 {
+            margin: 0;
+            font-size: 36px;
+            text-transform: uppercase;
+            letter-spacing: -1px;
+            color: #D4ED00;
+        }
+        .board-header p {
+            margin: 6px 0 0;
+            font-size: 13px;
+            opacity: 0.7;
+            font-family: sans-serif;
+            color: #fff;
+        }
+
+        /* ── 공지 탭 구분선 ── */
+        .notice-tab-bar {
+            background: #D4ED00;
+            border: 4px solid #000;
+            border-top: none;
+            padding: 10px 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .notice-badge {
+            background: #000;
+            color: #D4ED00;
+            padding: 4px 14px;
+            font-size: 12px;
+            font-weight: 900;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+        .notice-tab-desc {
+            font-size: 12px;
+            font-weight: 900;
+            color: #000;
+        }
+
+        /* ── 게시글 목록 테이블 ── */
+        .board-body {
+            background: #fff;
+            border: 4px solid #000;
+            border-top: none;
+            box-shadow: 10px 10px 0 #000;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead tr { background: #f5f5f5; border-bottom: 3px solid #000; }
+        th {
+            padding: 14px 12px;
+            font-size: 12px;
+            font-weight: 900;
+            text-align: center;
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+        td {
+            padding: 14px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            border-bottom: 1px solid #eee;
+            text-align: center;
+            vertical-align: middle;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: #fffef0; }
+
+        .td-title {
+            text-align: left;
+            max-width: 400px;
+        }
+        .post-title-link {
+            cursor: pointer;
+            font-weight: 900;
+            font-size: 14px;
+        }
+        .post-title-link:hover {
+            text-decoration: underline;
+            text-decoration-color: #D4ED00;
+        }
+
+        /* 공지 뱃지 */
+        .notice-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: 900;
+            border: 2px solid #000;
+            margin-right: 6px;
+            vertical-align: middle;
+            background: #D4ED00;
+            text-transform: uppercase;
+        }
+        /* 중요 공지 강조 */
+        .notice-row-pinned td { background: #fffef0; }
+        .notice-row-pinned .post-title-link::before {
+            content: '📌 ';
+        }
+
+        /* 빈 목록 */
+        .empty-row td {
+            text-align: center;
+            padding: 60px;
+            color: #aaa;
+            font-size: 16px;
+        }
+
+        /* ── 하단 바 ── */
+        .board-foot {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px 20px;
+            border: 4px solid #000;
+            border-top: 2px solid #000;
+            background: #fff;
+            box-shadow: 10px 10px 0 #000;
+            margin-top: -1px;
+        }
+        .pagination { display: flex; gap: 6px; }
+        .page-btn {
+            width: 34px; height: 34px;
+            border: 2px solid #000;
+            background: #fff;
+            font-weight: 900; font-size: 13px;
+            cursor: pointer; font-family: inherit;
+            box-shadow: 2px 2px 0 #000;
+            transition: 0.1s;
+        }
+        .page-btn:hover  { background: #000; color: #fff; }
+        .page-btn.active { background: #D4ED00; color: #000; border-color: #000; }
+        .page-btn:active { transform: translate(1px,1px); box-shadow: none; }
+
+        /* 글쓰기 버튼: 관리자만 보임 */
+        .write-btn {
+            padding: 10px 24px;
+            background: #000; color: #D4ED00;
+            border: 3px solid #000;
+            font-weight: 900; font-size: 14px;
+            cursor: pointer; font-family: inherit;
+            box-shadow: 4px 4px 0 #555;
+            transition: 0.1s; text-transform: uppercase;
+            display: none; /* 기본 숨김 → JS로 admin만 표시 */
+        }
+        .write-btn:hover  { background: #D4ED00; color: #000; }
+        .write-btn:active { transform: translate(3px,3px); box-shadow: none; }
+
+        /* 로딩 */
+        .loading { text-align: center; padding: 60px; color: #aaa; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+<div id="header-container"></div>
+
+<div class="page-wrap">
+
+    <!-- 타이틀 -->
+    <div class="board-header">
+        <div>
+            <h1>📢 Notice</h1>
+            <p>Ready Play! 공식 공지사항을 확인하세요</p>
+        </div>
+    </div>
+
+    <!-- 공지 탭 구분선 -->
+    <div class="notice-tab-bar">
+        <span class="notice-badge">OFFICIAL</span>
+        <span class="notice-tab-desc">운영팀의 공식 공지만 게시됩니다</span>
+    </div>
+
+    <!-- 게시글 목록 -->
+    <div class="board-body">
+        <table>
+            <thead>
+                <tr>
+                    <th style="width:50px">NO</th>
+                    <th>제목</th>
+                    <th style="width:90px">작성자</th>
+                    <th style="width:90px">날짜</th>
+                    <th style="width:55px">조회</th>
+                    <th style="width:55px">댓글</th>
+                </tr>
+            </thead>
+            <tbody id="postTableBody">
+                <tr><td colspan="6" class="loading">불러오는 중...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- 하단: 페이지네이션 + 글쓰기(관리자) -->
+    <div class="board-foot">
+        <div class="pagination" id="pagination"></div>
+        <button class="write-btn" id="writeBtn" onclick="goWrite()">📢 공지 쓰기</button>
+    </div>
+
+</div>
+
+<div id="footer-container"></div>
+
+<script>
+    const sb = getSupabase();
+    const PAGE_SIZE = 15;
+    let currentPage = 1;
+    let totalCount  = 0;
+
+    // ────────────────────────────────────────────────────────
+    //  초기화
+    // ────────────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadLayout();
+
+        // 관리자 확인 → 글쓰기 버튼 표시
+        const user = JSON.parse(sessionStorage.getItem('readyplayUser') || '{}');
+        if (user.userRole === 'admin') {
+            document.getElementById('writeBtn').style.display = 'inline-block';
+        }
+
+        loadPosts();
+    });
+
+    // ────────────────────────────────────────────────────────
+    //  공지 목록 불러오기 (category = '공지' 만)
+    // ────────────────────────────────────────────────────────
+    async function loadPosts() {
+        const tbody = document.getElementById('postTableBody');
+        tbody.innerHTML = '<tr><td colspan="6" class="loading">불러오는 중...</td></tr>';
+
+        try {
+            // 총 개수
+            const { count } = await sb.from('posts')
+                .select('id', { count: 'exact', head: true })
+                .eq('category', '공지');
+            totalCount = count || 0;
+
+            // 실제 데이터
+            const from = (currentPage - 1) * PAGE_SIZE;
+            const to   = from + PAGE_SIZE - 1;
+
+            const { data: posts, error } = await sb.from('posts')
+                .select(`
+                    id, title, author_name,
+                    created_at, view_count,
+                    post_comments(count)
+                `)
+                .eq('category', '공지')
+                .order('created_at', { ascending: false })
+                .range(from, to);
+
+            if (error) throw error;
+
+            renderPosts(posts || []);
+            renderPagination();
+
+        } catch (err) {
+            tbody.innerHTML = `<tr><td colspan="6" class="loading">❌ 불러오기 실패: ${err.message}</td></tr>`;
+        }
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  목록 렌더링
+    // ────────────────────────────────────────────────────────
+    function renderPosts(posts) {
+        const tbody = document.getElementById('postTableBody');
+        if (posts.length === 0) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="6">📋 등록된 공지사항이 없습니다.</td></tr>';
+            return;
+        }
+
+        tbody.innerHTML = posts.map((p, idx) => {
+            const no           = totalCount - ((currentPage - 1) * PAGE_SIZE) - idx;
+            const date         = p.created_at ? p.created_at.slice(0, 10) : '';
+            const commentCount = p.post_comments?.[0]?.count ?? 0;
+            const cmtBadge     = commentCount > 0
+                ? `<span style="color:#FF5A10; font-size:11px; font-weight:900;"> [${commentCount}]</span>`
+                : '';
+
+            return `
+                <tr onclick="goDetail('${p.id}')" style="cursor:pointer;">
+                    <td>${no}</td>
+                    <td class="td-title">
+                        <span class="notice-tag">공지</span>
+                        <span class="post-title-link">
+                            ${escHtml(p.title)}${cmtBadge}
+                        </span>
+                    </td>
+                    <td>${escHtml(p.author_name || '관리자')}</td>
+                    <td style="font-size:12px; font-family:sans-serif;">${date}</td>
+                    <td style="font-size:12px;">${p.view_count || 0}</td>
+                    <td style="font-size:12px;">${commentCount}</td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  페이지네이션
+    // ────────────────────────────────────────────────────────
+    function renderPagination() {
+        const container  = document.getElementById('pagination');
+        const totalPages = Math.ceil(totalCount / PAGE_SIZE);
+        if (totalPages <= 1) { container.innerHTML = ''; return; }
+
+        let html = '';
+        if (currentPage > 1) html += `<button class="page-btn" onclick="goPage(${currentPage - 1})">‹</button>`;
+        const start = Math.max(1, currentPage - 2);
+        const end   = Math.min(totalPages, start + 4);
+        for (let i = start; i <= end; i++) {
+            html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
+        }
+        if (currentPage < totalPages) html += `<button class="page-btn" onclick="goPage(${currentPage + 1})">›</button>`;
+
+        container.innerHTML = html;
+    }
+
+    function goPage(page) {
+        currentPage = page;
+        loadPosts();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // ────────────────────────────────────────────────────────
+    //  페이지 이동
+    // ────────────────────────────────────────────────────────
+    function goDetail(postId) {
+        location.href = `post-detail.html?id=${postId}`;
+    }
+
+    function goWrite() {
+        const user = JSON.parse(sessionStorage.getItem('readyplayUser') || '{}');
+        if (user.userRole !== 'admin') {
+            alert('공지 게시판은 관리자만 작성할 수 있습니다.');
+            return;
+        }
+        location.href = 'write-post.html?board=notice';
+    }
+
+    // XSS 방지
+    function escHtml(str) {
+        return String(str || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+</script>
+</body>
+</html>
