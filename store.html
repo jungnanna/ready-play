@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ready Play! - Scroll Store</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env.js"></script>
+    <script src="common.js"></script>
+    <link rel="stylesheet" href="common.css">
+    <style>
+        :root {
+            --black: #000000;
+            --white: #ffffff;
+            --gray: #f4f4f4;
+            --dark-gray: #333333;
+            --shadow: 10px 10px 0px #000;
+        }
+
+        * { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            margin: 0;
+            background-color: var(--white);
+            font-family: 'Pretendard', sans-serif;
+            color: var(--black);
+            padding-top: 100px; 
+        }
+
+        /* 카테고리 네비게이션바 */
+        .nav-container {
+            position: fixed;
+            top: 150px; 
+            left: 50%;
+            transform: translateX(-50%);
+            width: 90%;
+            max-width: 800px;
+            z-index: 1000;
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .nav-chip {
+            padding: 12px 25px;
+            background: var(--white);
+            border: 3px solid var(--black);
+            font-weight: 900;
+            text-decoration: none;
+            color: var(--black);
+            box-shadow: 4px 4px 0px var(--black);
+            transition: 0.2s;
+            font-size: 15px;
+            white-space: nowrap;
+            text-transform: uppercase;
+        }
+
+        .nav-chip:hover {
+            background: var(--black);
+            color: var(--white);
+            transform: translate(-2px, -2px);
+            box-shadow: 6px 6px 0px var(--black);
+        }
+
+        .btn-top {
+            position: fixed; bottom: 30px; right: 30px; width: 60px; height: 60px;
+            background: var(--white); border: 4px solid var(--black); border-radius: 50%;
+            font-size: 24px; font-weight: bold; cursor: pointer; z-index: 999;
+            box-shadow: 5px 5px 0px var(--black); display: flex; justify-content: center;
+            align-items: center; transition: 0.2s;
+        }
+
+        .container {
+            margin-top: 150px; padding: 20px; display: flex; flex-direction: column;
+            align-items: center; gap: 60px; padding-bottom: 100px;
+        }
+
+        .product-section {
+            width: 100%; max-width: 1000px; display: flex; background: var(--white);
+            border: 4px solid var(--black); box-shadow: var(--shadow); min-height: 450px;
+            scroll-margin-top: 230px;
+        }
+
+        .img-box { flex: 1; background: var(--gray); border-right: 4px solid var(--black); display: flex; justify-content: center; align-items: center; position: relative; overflow: hidden; }
+        .img-box img { width: 100%; transition: transform 0.4s; }
+        .product-section:hover .img-box img { transform: scale(1.1) rotate(5deg); }
+        .category-label { position: absolute; top: 20px; left: 20px; background: var(--black); color: white; padding: 5px 15px; font-weight: bold; font-size: 18px; z-index: 10; }
+        
+        .info-box { flex: 1; padding: 40px; display: flex; flex-direction: column; justify-content: center; }
+        .info-box h2 { font-size: 42px; margin: 0 0 10px 0; text-transform: uppercase; }
+        .info-box p { font-size: 18px; color: var(--dark-gray); margin-bottom: 30px; line-height: 1.5; }
+        
+        .price-row { display: flex; align-items: center; justify-content: space-between; margin-top: auto; }
+        .price { font-size: 28px; font-weight: 900; }
+        
+        .btn-group { display: flex; gap: 10px; }
+        .btn { padding: 15px 25px; border: 3px solid var(--black); font-weight: bold; cursor: pointer; background: var(--white); box-shadow: 4px 4px 0px var(--black); transition: 0.1s; }
+        .btn-black { background: var(--black); color: var(--white); }
+        .btn:active { transform: translate(3px, 3px); box-shadow: 0px 0px 0px var(--black); }
+
+        @media (max-width: 850px) {
+            .product-section { flex-direction: column; }
+            .img-box { border-right: none; border-bottom: 4px solid var(--black); min-height: 300px; }
+            .container { margin-top: 220px; }
+            .nav-container { top: 110px; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header-container"></div>
+
+    <button class="btn-top" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">↑</button>
+
+    <div class="nav-container">
+        <a href="#soccer" class="nav-chip">축구</a>
+        <a href="#basketball" class="nav-chip">농구</a>
+        <a href="#baseball" class="nav-chip">야구</a>
+        <a href="#volleyball" class="nav-chip">배구</a>
+        <a href="#running" class="nav-chip">러닝</a>
+        <a href="#fitness" class="nav-chip">헬스</a>
+    </div>
+
+    <div class="container">
+        <section id="soccer" class="product-section">
+            <div class="img-box"><span class="category-label">SOCCER</span><img src="soccer_store.png" alt="축구"></div>
+            <div class="info-box">
+                <h2>축구 스타터 키트</h2>
+                <p>최고의 퍼포먼스를 위한 에센셜 구성.</p>
+                <div class="price-row">
+                    <div class="price">₩ 110,000</div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="addToWishlist('축구 스타터 키트', '110,000원', 'SOCCER','soccer_store.png')">♥</button>
+                        <button class="btn btn-black" onclick="location.href='soccer.html'">VIEW DETAIL</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="basketball" class="product-section">
+            <div class="img-box"><span class="category-label">BASKETBALL</span><img src="basketball_store.png" alt="농구"></div>
+            <div class="info-box">
+                <h2>농구 스타터 키트</h2>
+                <p>실내외 어디서든 최고의 접지력을 선사합니다.</p>
+                <div class="price-row">
+                    <div class="price">₩ 120,000</div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="addToWishlist('농구 스타터 키트', '120,000원', 'BASKETBALL','basketball_store.png')">♥</button>
+                        <button class="btn btn-black" onclick="location.href='basketball.html'">VIEW DETAIL</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="baseball" class="product-section">
+            <div class="img-box"><span class="category-label">BASEBALL</span><img src="baseball_store.png" alt="야구"></div>
+            <div class="info-box">
+                <h2>야구 스타터 키트</h2>
+                <p>프리미엄 글러브와 알루미늄 배트 구성.</p>
+                <div class="price-row">
+                    <div class="price">₩ 115,000</div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="addToWishlist('야구 스타터 키트', '115,000원', 'BASEBALL','baseball_store.png')">♥</button>
+                        <button class="btn btn-black" onclick="location.href='baseball.html'">VIEW DETAIL</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="volleyball" class="product-section">
+            <div class="img-box"><span class="category-label">VOLLEYBALL</span><img src="volleyball_store.png" alt="배구"></div>
+            <div class="info-box">
+                <h2>배구 스타터 키트</h2>
+                <p>인체공학적 디자인의 장비 세트입니다.</p>
+                <div class="price-row">
+                    <div class="price">₩ 120,000</div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="addToWishlist('배구 스타터 키트', '120,000원', 'VOLLEYBALL','volleyball_store.png')">♥</button>
+                        <button class="btn btn-black" onclick="location.href='volleyball.html'">VIEW DETAIL</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="running" class="product-section">
+            <div class="img-box"><span class="category-label">RUNNING</span><img src="running_store.png" alt="러닝"></div>
+            <div class="info-box">
+                <h2>러닝 스타터 키트</h2>
+                <p>최상의 쿠셔닝과 통기성을 경험하세요.</p>
+                <div class="price-row">
+                    <div class="price">₩ 190,000</div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="addToWishlist('러닝 스타터 키트', '190,000원', 'RUNNING','running_store.png')">♥</button>
+                        <button class="btn btn-black" onclick="location.href='running.html'">VIEW DETAIL</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section id="fitness" class="product-section">
+            <div class="img-box"><span class="category-label">HEALTH</span><img src="health_store.png" alt="헬스"></div>
+            <div class="info-box">
+                <h2>헬스 스타터 세트</h2>
+                <p>고강도 저항 밴드와 덤벨 세트 구성.</p>
+                <div class="price-row">
+                    <div class="price">₩ 130,000</div>
+                    <div class="btn-group">
+                        <button class="btn" onclick="addToWishlist('헬스 스타터 세트', '130,000원', 'HEALTH','health_store.png')">♥</button>
+                        <button class="btn btn-black" onclick="location.href='Health.html'">VIEW DETAIL</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <div id="footer-container"></div>
+
+    <script>
+        // toggleMenu, toggleSubmenu, checkLoginAndMove, addToWishlist, loadLayout,
+        // updateLoginStatus는 모두 common.js 것을 그대로 쓴다 (이 페이지 전용 로직 없음)
+        document.addEventListener('DOMContentLoaded', loadLayout);
+    </script>
+</body>
+</html>

@@ -54,57 +54,6 @@
 }
 .nav-btn:active { transform: translate(2px, 2px); box-shadow: 0px 0px 0px; }
 
-/* ── 헤더 검색바 (네이버 스타일) ── */
-/* nav-btn과 동일한 border(2px) + padding(6px 12px)으로 높이 완전히 맞춤 */
-.header-search {
-    display: flex;
-    align-items: stretch;   /* 내부 요소 높이 통일 */
-    gap: 0;
-    border: 2px solid #000; /* nav-btn과 동일한 테두리 두께 */
-    box-shadow: 3px 3px 0px #000; /* nav-btn과 동일한 그림자 */
-    background: #D4ED00;
-    overflow: hidden;
-}
-.header-search-input {
-    width: 180px;
-    padding: 6px 10px;      /* nav-btn과 동일한 상하 패딩 */
-    font-size: 14px;        /* nav-btn과 동일한 폰트 크기 */
-    font-weight: 700;
-    border: none;
-    border-bottom: 2px solid transparent;
-    outline: none;
-    font-family: 'Arial Black', sans-serif;
-    background: #fff;
-    box-sizing: border-box;
-    transition: border-color 0.2s, background 0.2s;
-    line-height: 1;
-}
-.header-search-input:focus {
-    border-bottom: 2px solid #D4ED00;
-    background: #fffef0;
-}
-.header-search-input::placeholder {
-    color: #bbb;
-    font-weight: 700;
-    font-size: 13px;
-}
-.header-search-btn {
-    padding: 6px 10px;      /* nav-btn과 동일한 패딩 */
-    background: #D4ED00;
-    color: #000;
-    border: none;
-    font-size: 15px;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 900;
-    transition: background 0.15s, color 0.15s;
-    line-height: 1;
-}
-.header-search-btn:hover  { background: #fff; color: #000; }
-.header-search-btn:active { background: #c8e000; }
-
 /* --- 사이드바 (화면의 30%) --- */
 .sidebar {
     position: fixed;
@@ -220,18 +169,6 @@
     <div class="menu" onclick="toggleMenu()">☰</div>
     <div class="logo" onclick="location.href='index.html'">Ready Play!</div>
     <div class="nav">
-        <!-- 검색바: ABOUT 왼쪽에 위치 -->
-        <div class="header-search" id="headerSearch">
-            <input
-                type="text"
-                class="header-search-input"
-                id="headerSearchInput"
-                placeholder="상품 검색..."
-                onkeydown="handleSearchKey(event)"
-            >
-            <button class="header-search-btn" onclick="handleSearchClick()" title="검색">🔍</button>
-        </div>
-
         <div class="nav-btn" onclick="location.href='about.html'">ABOUT</div>
         <div class="nav-btn" onclick="location.href='store.html'">STORE</div>
         <div class="nav-btn" onclick="location.href='review.html'">COMMUNITY</div>
@@ -243,30 +180,3 @@
     </div>
 </header>
 
-<script>
-// ── 헤더 검색 로직 ──
-
-function handleSearchClick() {
-    doSearch(document.getElementById('headerSearchInput').value.trim());
-}
-
-function handleSearchKey(e) {
-    if (e.key === 'Enter')  doSearch(document.getElementById('headerSearchInput').value.trim());
-    if (e.key === 'Escape') document.getElementById('headerSearchInput').value = '';
-}
-
-function doSearch(query) {
-    if (!query) return;
-
-    // 지금 store.html이면 → 페이지 이동 없이 바로 필터링
-    if (window.location.pathname.includes('store.html')) {
-        const storeInput = document.getElementById('searchInput');
-        if (storeInput) storeInput.value = query;
-        if (typeof filterProducts === 'function') filterProducts(query);
-        window.scrollTo({ top: 200, behavior: 'smooth' });
-    } else {
-        // 다른 페이지면 → store.html?q=검색어 로 이동
-        location.href = 'store.html?q=' + encodeURIComponent(query);
-    }
-}
-</script>
