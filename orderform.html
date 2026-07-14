@@ -6,10 +6,10 @@
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
     <script src="https://js.tosspayments.com/v1/payment"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
-        /* [원래 구조 100% 유지] */
         body { margin: 0; font-family: 'Pretendard', sans-serif; background-color: #f7f7f7; color: #000; padding-bottom: 100px; /* padding-top: common.css에서 통일 */ }
         .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
         h1 { text-align: center; font-family: 'Arial Black'; font-size: 40px; margin-bottom: 50px; }
@@ -128,23 +128,25 @@
     const tossPayments = TossPayments(clientKey);
 
     window.onload = async function() {
-        await loadLayout(); // common.js에서 헤더+푸터 로드 + updateLoginStatus() 자동 호출
+        await loadLayout();
         renderOrderItems();
-        await autoFillUserInfo(); 
+        await autoFillUserInfo();
     };
 
-    // [핵심 수정] Supabase에서 회원 정보를 가져오는 함수
+    /**
+     * 로그인 상태면 profiles 테이블 값으로 주문자 정보를 자동 채워준다.
+     * 비회원 주문도 지원해야 하므로 세션이 없으면 조용히 넘어간다(로그인 강제 안 함).
+     */
     async function autoFillUserInfo() {
         const { data: { session } } = await supabaseClient.auth.getSession();
-        
+
         if (!session) {
             console.log("비회원 주문");
             isMember = false;
-            return; 
+            return;
         }
 
         try {
-            // profiles 테이블에서 로그인된 유저 ID로 데이터 단건 조회
             const { data: profile, error } = await supabaseClient
                 .from('profiles')
                 .select('*')
@@ -210,7 +212,7 @@
         btn.classList.add('active');
     }
 
-    // [핵심 수정] 배송지 정보 복사 함수
+    /** '주문자 정보와 동일' 체크박스 처리 — isSame이면 주문자 정보를 배송지에 복사, 아니면 배송지를 비운다. */
     function copyInfo(isSame) {
         if (isSame) {
             document.getElementById('dest_name').value = document.getElementById('orderer_name').value;
@@ -236,7 +238,7 @@
         }).open();
     }
 
-    // 주문번호 생성 (RP + 날짜 + 랜덤 4자리)
+    /** 'RP' + YYMMDD + 랜덤 4자리 형식의 주문번호를 만든다. 예: RP2607091234 */
     function generateOrderNumber() {
         const now = new Date();
         const datePart = now.getFullYear().toString().slice(2)

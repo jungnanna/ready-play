@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <title>ORDER COMPLETE - Ready Play!</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <style>
         body { margin: 0; font-family: 'Pretendard', sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background-color: #f7f7f7; }
@@ -43,12 +44,11 @@
                 console.error("주문 저장 실패:", err.message);
                 // 저장 실패해도 성공 화면은 보여줌 (주문번호는 표시)
             } finally {
-                // 중복 저장 방지: 저장 시도 후 반드시 삭제
+                // 새로고침 시 같은 주문이 중복 저장되지 않도록, 저장 시도 결과와 무관하게 지운다
                 sessionStorage.removeItem('pendingOrder');
             }
         }
 
-        // 성공 화면 렌더링
         displayArea.innerHTML = `
             <h1>THANK YOU!</h1>
             <p style="font-weight:bold;">주문이 정상적으로 접수되었습니다.</p>
@@ -60,7 +60,6 @@
             <a href="index.html" class="btn-home">GO TO MAIN</a>
         `;
 
-        // 장바구니 데이터 초기화
         sessionStorage.removeItem('OrderTemp');
     }
 

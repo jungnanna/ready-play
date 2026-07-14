@@ -1,5 +1,5 @@
 <style>
-    /* 푸터 전용 스타일 - 기존 스타일 완벽 보존 */
+    /* 푸터 전용 스타일 */
     .main-footer { 
         background: #000000; 
         border-top: 4px solid #000;
@@ -153,22 +153,18 @@
     </div>
 
     <script>
-    // ⚠️ Supabase CDN은 각 페이지에서 common.js보다 먼저 로드됩니다.
-    // 여기서는 common.js의 getSupabase()를 통해 올바른 프로젝트에 연결합니다.
-    // (이전에 잘못 연결된 Supabase 프로젝트는 더 이상 사용하지 않음 → 수정 완료)
-
+    // footer.html은 innerHTML로 삽입된 뒤 common.js가 재실행해주는 스크립트라서,
+    // 여기서 새로 createClient()하지 않고 common.js의 getSupabase() 싱글톤을 재사용해
+    // 페이지 전체가 같은 Supabase 클라이언트/세션을 공유하도록 한다.
     window.initFooterLogic = function() {
-        // common.js의 getSupabase() 싱글톤 활용 (qdcysdousmdfucuvdcgt 프로젝트)
         const sb = (typeof getSupabase === 'function') ? getSupabase() : null;
 
-        // 관리자일 때만 STAFF ONLY 링크 표시
-        // ⚠️ sessionStorage(readyplayUser)가 앱 로그인 상태의 유일한 기준
-        //    Supabase localStorage 세션이 남아있어도 앱 세션이 없으면 표시 안 함
+        // STAFF ONLY 링크는 sessionStorage(readyplayUser)만 기준으로 판단한다.
+        // Supabase 쪽 로그인 세션이 살아있어도 앱의 readyplayUser가 없으면 로그아웃 상태로 취급.
         (function showAdminLinkIfAdmin() {
             const link = document.getElementById('footer-admin-link');
             if (!link) return;
             const stored = JSON.parse(sessionStorage.getItem('readyplayUser') || '{}');
-            // isLoggedIn이 true이고 userRole이 admin인 경우에만 표시
             if (stored.isLoggedIn === true && stored.userRole === 'admin') {
                 link.style.display = 'inline';
             }
@@ -198,7 +194,7 @@
                 btn.disabled = true;
                 btn.innerText = 'SENDING...';
 
-                try { //Supabase DB 'contact_logs' 테이블에 데이터 전달
+                try {
                     if (!sb) throw new Error('Supabase 클라이언트가 없습니다. common.js를 확인하세요.');
                     const { error } = await sb.from('contact_logs').insert([{
                         name, email, message

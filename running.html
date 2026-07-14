@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ready Play! - 러닝 입문 키트</title>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
@@ -244,14 +245,14 @@
 <div id="footer-container"></div>
 
 <script>
-    // loadLayout, updateLoginStatus → common.js에서 담당
-    // running.html의 addToWishlist()는 선택 항목 기반이라 페이지에서 그대로 유지
+    // loadLayout, updateLoginStatus는 common.js 것을 쓰지만, addToWishlist()는
+    // 이 페이지의 구성품 선택 상태(.included)를 기준으로 동작해야 해서 common.js
+    // 것을 쓰지 않고 페이지에 별도로 정의한다.
     document.addEventListener('DOMContentLoaded', () => {
-        loadLayout();   // 헤더+푸터 로드 + 로그인 상태 반영
-        renderCart();   // 미니 장바구니 초기 렌더링
+        loadLayout();
+        renderCart();
     });
 
-    // 슬라이더 로직 생략 (기존과 동일)
     let currentSlide = 0;
     const wrapper = document.getElementById('sliderWrapper');
     const dots = document.querySelectorAll('.dot');
@@ -290,7 +291,6 @@
         if(cTotalAmt) cTotalAmt.innerText = total.toLocaleString() + "원";
     }
 
-    // 장바구니 추가 함수
     function addToCart() {
         const included = document.querySelectorAll('.item .included');
         if (included.length < 3) { alert("최소 3개 이상의 구성품을 선택해야 합니다."); return; }
@@ -320,7 +320,6 @@
         toggleCart();
     }
 
-    // 찜하기(위시리스트) 추가 함수 [수정됨]
     function addToWishlist() {
         const included = document.querySelectorAll('.item .included');
         if (included.length < 3) { alert("최소 3개 이상의 구성품을 선택해야 합니다."); return; }
@@ -334,21 +333,20 @@
             selectedOptions.push(name);
         });
 
-        // 위시리스트 데이터 구조 생성
         const wishItem = {
             id: "wish_" + Date.now(),
             name: "러닝 스타터 키트",
             price: kitPrice,
-            img: "running_store.png", // 위시리스트에 표시될 대표 이미지
+            img: "running_store.png",
             options: selectedOptions.join(", "),
             date: new Date().toLocaleDateString()
         };
 
         wishlist.push(wishItem);
         sessionStorage.setItem('Wishlist', JSON.stringify(wishlist));
-        
+
         if(confirm("♥ 찜 목록에 추가되었습니다. 위시리스트 페이지로 이동하시겠습니까?")) {
-            location.href = "wishlist.html"; // 위시리스트 페이지 파일명에 맞춰 수정하세요
+            location.href = "wishlist.html";
         }
     }
 
@@ -392,21 +390,19 @@
         if(el) window.scrollTo({ top: el.offsetTop - 180, behavior: 'smooth' });
     }
 
-    // 바로 구매하기 함수
+    /** 장바구니를 거치지 않고 바로 orderform.html로 넘어가는 즉시구매 플로우. */
 function directOrder() {
     const included = document.querySelectorAll('.item .included');
-    
-    // 1. 최소 수량 검증 (기존 로직 유지)
-    if (included.length < 3) { 
-        alert("최소 3개 이상의 구성품을 선택해야 합니다."); 
-        return; 
+
+    if (included.length < 3) {
+        alert("최소 3개 이상의 구성품을 선택해야 합니다.");
+        return;
     }
-    
+
     let kitPrice = 0;
     let selectedOptions = [];
-    
-    // 2. 선택된 항목 데이터 추출
-    included.forEach(btn => { 
+
+    included.forEach(btn => {
         const item = btn.closest('.item');
         kitPrice += parseInt(item.dataset.price);
         const name = item.querySelector('.item-top span').innerText;
@@ -415,23 +411,20 @@ function directOrder() {
         selectedOptions.push(name + size);
     });
 
-    // 3. 주문서로 넘길 단일 상품 객체 생성
     const orderData = {
         id: "direct_" + Date.now(),
         name: "러닝 스타터 키트 (단품 주문)",
         price: kitPrice,
         qty: 1,
-        img: "running_store.png", // 대표 이미지
+        img: "running_store.png",
         options: selectedOptions.join(", "),
-        type: "DIRECT_ORDER" // 주문서에서 장바구니와 구분하기 위한 플래그
+        type: "DIRECT_ORDER" // orderform.html이 장바구니 주문과 구분해서 처리할 수 있도록 붙이는 플래그
     };
 
-    // 4. SessionStorage에 'OrderTemp'라는 이름으로 저장
-    // (장바구니인 'Cart'와 분리하여 주문서에서 인식하게 함)
+    // 'Cart'와는 별개 키인 'OrderTemp'에 담아야 orderform.html이 즉시구매 건으로 인식한다
     sessionStorage.setItem('OrderTemp', JSON.stringify([orderData]));
 
-    // 5. 주문서 페이지로 이동
-    location.href = 'orderform.html'; 
+    location.href = 'orderform.html';
 }
 </script>
 </body>

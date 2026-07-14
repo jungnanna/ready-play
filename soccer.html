@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ready Play! - 축구 입문 키트</title>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
@@ -223,9 +224,9 @@
 <div id="footer-container"></div>
     
 <script>
-    // loadLayout, updateLoginStatus → common.js에서 담당
-    // soccer는 SweetAlert2를 사용하므로 handleLogout만 페이지 고유 버전 유지 (SweetAlert 팝업)
-    // common.js의 handleLogout을 덮어쓰기 (SweetAlert 적용 버전)
+    // loadLayout, updateLoginStatus는 common.js 것을 그대로 쓰지만, 이 페이지는
+    // SweetAlert2를 로드하고 있어서 기본 confirm() 대신 SweetAlert 팝업을 쓰도록
+    // handleLogout만 같은 이름으로 재정의해 common.js 버전을 덮어쓴다.
     async function handleLogout() {
         Swal.fire({
             title: '로그아웃 하시겠습니까?',
@@ -272,7 +273,7 @@
         ov.style.display = sb.classList.contains('open') ? 'block' : 'none';
     }
 
-    // [SweetAlert2 적용] 장바구니 담기
+    /** 최소 3개 구성품 + 사이즈 선택을 검증한 뒤 장바구니(sessionStorage 'Cart')에 담는다. */
     function addToCart() {
         const included = document.querySelectorAll('.item .included');
         if (included.length < 3) { 

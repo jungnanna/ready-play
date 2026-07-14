@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>READY PLAY! - COMMUNITY</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
@@ -213,7 +214,7 @@
 
 <script>
     const sb = getSupabase();
-    const PAGE_SIZE = 15;   // 한 페이지당 게시글 수
+    const PAGE_SIZE = 15;
     let currentPage   = 1;
     let currentFilter = '전체';
     let totalCount    = 0;
@@ -232,7 +233,6 @@
     function setFilter(category, btn) {
         currentFilter = category;
         currentPage   = 1;
-        // 버튼 active 상태 변경
         document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
         btn.classList.add('active');
         loadPosts();
@@ -246,15 +246,14 @@
         tbody.innerHTML = '<tr><td colspan="7" class="loading">불러오는 중...</td></tr>';
 
         try {
-            // 총 개수 쿼리 (공지 제외 + 페이지네이션용)
+            // 전체 개수를 따로 조회해야 range()로 자르기 전에 총 페이지 수를 계산할 수 있다
             let countQuery = sb.from('posts')
                 .select('id', { count: 'exact', head: true })
-                .neq('category', '공지');   // 공지는 커뮤니티에서 제외
+                .neq('category', '공지');   // 공지 게시판은 notice.html에서 별도로 보여주므로 여기선 제외
             if (currentFilter !== '전체') countQuery = countQuery.eq('category', currentFilter);
             const { count } = await countQuery;
             totalCount = count || 0;
 
-            // 실제 데이터 쿼리
             const from = (currentPage - 1) * PAGE_SIZE;
             const to   = from + PAGE_SIZE - 1;
 
@@ -264,7 +263,7 @@
                     created_at, view_count, user_id,
                     post_comments(count)
                 `)
-                .neq('category', '공지')   // 공지는 커뮤니티에서 제외
+                .neq('category', '공지')
                 .order('created_at', { ascending: false })
                 .range(from, to);
 
@@ -295,9 +294,7 @@
             const no       = totalCount - ((currentPage - 1) * PAGE_SIZE) - idx;
             const date     = p.created_at ? p.created_at.slice(0, 10) : '';
             const commentCount = p.post_comments?.[0]?.count ?? 0;
-            // 비밀글 아이콘
             const secretIcon = p.is_secret ? '<span class="secret-icon" title="비밀글">🔒</span>' : '';
-            // 댓글수 표시
             const cmtBadge = commentCount > 0
                 ? `<span style="color:#FF5A10; font-size:11px; font-weight:900;"> [${commentCount}]</span>`
                 : '';
@@ -329,15 +326,13 @@
         if (totalPages <= 1) { container.innerHTML = ''; return; }
 
         let html = '';
-        // 이전 버튼
         if (currentPage > 1) html += `<button class="page-btn" onclick="goPage(${currentPage - 1})">‹</button>`;
-        // 페이지 번호 (최대 5개)
+        // 페이지 번호는 현재 페이지 기준 앞뒤로 최대 5개까지만 노출
         const start = Math.max(1, currentPage - 2);
         const end   = Math.min(totalPages, start + 4);
         for (let i = start; i <= end; i++) {
             html += `<button class="page-btn ${i === currentPage ? 'active' : ''}" onclick="goPage(${i})">${i}</button>`;
         }
-        // 다음 버튼
         if (currentPage < totalPages) html += `<button class="page-btn" onclick="goPage(${currentPage + 1})">›</button>`;
 
         container.innerHTML = html;
@@ -366,7 +361,7 @@
         location.href = 'write-post.html';
     }
 
-    // XSS 방지: HTML 특수문자 이스케이프
+    /** 게시글 데이터를 innerHTML로 직접 렌더링하므로, 삽입 전 특수문자를 이스케이프해 XSS를 막는다. */
     function escHtml(str) {
         return String(str)
             .replace(/&/g, '&amp;')

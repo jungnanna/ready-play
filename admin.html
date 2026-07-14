@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>READY PLAY! - ADMIN</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
@@ -342,7 +343,6 @@
         document.getElementById('panel-' + tabName).classList.add('active');
         el.classList.add('active');
 
-        // 탭 전환 시 데이터 로드
         if (tabName === 'dashboard') loadDashboard();
         if (tabName === 'orders')   loadOrders();
         if (tabName === 'products') loadProducts();
@@ -363,7 +363,6 @@
         document.getElementById('stat-products').innerText = products.count ?? 0;
         document.getElementById('stat-contacts').innerText = contacts.count ?? 0;
 
-        // 최근 주문 5건
         const { data } = await sb.from('orders')
             .select('*').order('created_at', { ascending: false }).limit(5);
         renderRecentOrders(data || []);
@@ -439,7 +438,7 @@
         if (error) {
             alert('상태 변경 실패: ' + error.message);
         } else {
-            // 로컬 캐시도 업데이트
+            // allOrders 캐시도 같이 갱신해야 검색 필터(filterOrders) 결과에도 바뀐 상태가 반영된다
             const idx = allOrders.findIndex(o => o.id === orderId);
             if (idx !== -1) allOrders[idx].status = newStatus;
         }
@@ -559,7 +558,6 @@
     }
 
     async function deleteMember(userId, name, role) {
-        // 관리자 계정은 삭제 불가
         if (role === 'admin') {
             alert('관리자 계정은 탈퇴처리할 수 없습니다.\n먼저 "일반으로" 버튼으로 등급을 변경하세요.');
             return;
@@ -631,14 +629,19 @@
         return '<span class="badge badge-gray">MEMBER</span>';
     }
 
-    // ── 초기화: 관리자 여부 확인 후 화면 표시 ──
     document.addEventListener('DOMContentLoaded', async () => {
-        await loadLayout(); // 헤더+푸터
+        await loadLayout();
         await checkAdminAccess();
     });
 
+    /**
+     * 관리자 접근 권한을 2단계로 확인한다.
+     * 1) sessionStorage 캐시를 먼저 보고 즉시 판단 (같은 탭에서 로그인한 경우 빠름)
+     * 2) 캐시가 없으면 Supabase 세션 + profiles.role을 직접 조회 (admin.html을
+     *    새 탭으로 바로 열었을 때는 sessionStorage가 비어있기 때문에 필요)
+     * 2번 경로로 확인에 성공하면 다음번엔 1번 경로를 타도록 sessionStorage에 캐시해둔다.
+     */
     async function checkAdminAccess() {
-        // 방법 1: sessionStorage 먼저 확인 (빠름)
         const stored = JSON.parse(sessionStorage.getItem('readyplayUser') || '{}');
         if (stored.isLoggedIn && stored.userRole === 'admin') {
             document.getElementById('adminWrapper').style.display = 'flex';
@@ -646,16 +649,13 @@
             return;
         }
 
-        // 방법 2: sessionStorage가 없으면 Supabase Auth 세션 직접 확인 (새 탭 대응)
         try {
             const { data: { session } } = await sb.auth.getSession();
             if (!session) {
-                // 로그인 자체가 안 된 상태
                 document.getElementById('accessDenied').style.display = 'flex';
                 return;
             }
 
-            // 로그인은 됐으니 profiles에서 role 확인
             const { data: profile } = await sb
                 .from('profiles')
                 .select('name, role')
@@ -663,7 +663,6 @@
                 .single();
 
             if (profile && profile.role === 'admin') {
-                // sessionStorage도 업데이트해주기 (이후 탭 이동 시 빠르게 작동)
                 sessionStorage.setItem('readyplayUser', JSON.stringify({
                     isLoggedIn: true,
                     userName: profile.name || '관리자',

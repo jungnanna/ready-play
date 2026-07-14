@@ -6,11 +6,13 @@
     <title>Readyplay - About Us</title>
     <link rel="stylesheet" href="common.css">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap');
 
-        /* [수정 1] 전체 선택자(*)에서 폰트와 박스사이징을 빼서 헤더/푸터 스타일을 보존합니다. */
+        /* 전역 리셋에 font/box-sizing까지 넣으면 header.html/footer.html의 스타일까지
+           덮어써버리므로, 여기서는 margin/padding만 초기화한다. */
         * { margin: 0; padding: 0; }
         
         body {
@@ -21,7 +23,7 @@
             margin: 0;
         }
 
-        /* [수정 2] about 페이지 본문 영역에만 폰트와 박스사이징을 제한적으로 적용합니다. */
+        /* font-family/box-sizing은 전역이 아니라 .main-container 하위로만 한정해서 적용 */
         .main-container, .main-container * {
             box-sizing: border-box;
         }

@@ -4,6 +4,7 @@
 <meta charset="UTF-8"> 
 <meta name="viewport" content="width=device-width, initial-scale=1.0"> 
 <title>Ready Play! - 배구 입문 키트</title>
+<script src="env.js"></script>
 <script src="common.js"></script>
 <link rel="stylesheet" href="common.css">
 <style>
@@ -11,32 +12,30 @@ body { margin: 0; font-family: 'Arial Black', sans-serif; /* padding-top: common
 .container { width:1100px; margin:0 auto 40px auto; background:white; padding:30px; border:3px solid #000; box-shadow:8px 8px 0px #000; box-sizing: border-box; } 
 .top { display:flex; border:3px solid #000; } 
 
-        /* 상품 이미지 영역 수정 */
-        .product-img { 
+        .product-img {
             width: 60%; /* 정보 영역이 40%이므로 60%로 설정 */
-            border-right: 3px solid #000; 
-            padding: 30px; /* 내부 여백 제거하여 꽉 채움 */
-            box-sizing: border-box; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            background: #fafafa; 
+            border-right: 3px solid #000;
+            padding: 30px;
+            box-sizing: border-box;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #fafafa;
             overflow: hidden; /* 이미지가 넘칠 경우 대비 */
         }
 
-        .product-img img { 
-            width: 100%; /* 부모 너비에 맞춤 */
-            height: 100%; /* 부모 높이에 맞춤 */
-            object-fit: cover; /* 박스에 꽉 차게 조절 (비율 유지하며 잘림) */
-            /* object-fit: contain; 비율을 유지하며 전체를 보고 싶다면 이것을 사용하세요 */
-            
-            /* 마우스 오버(transform) 관련 transition 및 필터 제거 */
-            transition: none; 
-            filter: none; 
+        .product-img img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* 비율 유지하며 박스에 꽉 차게, 넘치는 부분은 잘림 */
+            /* object-fit: contain; 잘리지 않고 전체 이미지를 보고 싶다면 이것으로 교체 */
+
+            /* 다른 스포츠 페이지들과 달리 이 페이지는 이미지 hover 확대/필터 효과를 쓰지 않기로 해서 명시적으로 무효화 */
+            transition: none;
+            filter: none;
         }
 
-        /* 마우스 오버 효과 완전 삭제 */
-        .product-img img:hover { 
+        .product-img img:hover {
             transform: none; 
             z-index: auto; 
         }

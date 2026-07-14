@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>READY PLAY! - 공지사항</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
@@ -241,7 +242,6 @@
     document.addEventListener('DOMContentLoaded', async () => {
         await loadLayout();
 
-        // 관리자 확인 → 글쓰기 버튼 표시
         const user = JSON.parse(sessionStorage.getItem('readyplayUser') || '{}');
         if (user.userRole === 'admin') {
             document.getElementById('writeBtn').style.display = 'inline-block';
@@ -258,13 +258,11 @@
         tbody.innerHTML = '<tr><td colspan="6" class="loading">불러오는 중...</td></tr>';
 
         try {
-            // 총 개수
             const { count } = await sb.from('posts')
                 .select('id', { count: 'exact', head: true })
                 .eq('category', '공지');
             totalCount = count || 0;
 
-            // 실제 데이터
             const from = (currentPage - 1) * PAGE_SIZE;
             const to   = from + PAGE_SIZE - 1;
 
@@ -366,7 +364,7 @@
         location.href = 'write-post.html?board=notice';
     }
 
-    // XSS 방지
+    /** innerHTML로 직접 렌더링하는 게시글 데이터를 이스케이프해 XSS를 막는다. */
     function escHtml(str) {
         return String(str || '')
             .replace(/&/g, '&amp;')

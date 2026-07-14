@@ -246,18 +246,15 @@
 <script>
 // ── 헤더 검색 로직 ──
 
-// 🔍 버튼 클릭 → 검색 실행
 function handleSearchClick() {
     doSearch(document.getElementById('headerSearchInput').value.trim());
 }
 
-// Enter / Escape 키 처리
 function handleSearchKey(e) {
     if (e.key === 'Enter')  doSearch(document.getElementById('headerSearchInput').value.trim());
     if (e.key === 'Escape') document.getElementById('headerSearchInput').value = '';
 }
 
-// 실제 검색 실행
 function doSearch(query) {
     if (!query) return;
 

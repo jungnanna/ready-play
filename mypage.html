@@ -6,6 +6,7 @@
     <title>READY PLAY - MY PAGE</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
@@ -461,15 +462,12 @@
 
     // ── 탭 전환 ──
     function switchTab(tabName) {
-        // 모든 패널 숨기기
         document.querySelectorAll('.content-panel').forEach(p => p.classList.remove('active'));
         document.querySelectorAll('.sidebar-menu-item').forEach(m => m.classList.remove('active'));
 
-        // 선택한 패널과 메뉴 활성화
         document.getElementById('panel-' + tabName).classList.add('active');
         event.currentTarget.classList.add('active');
 
-        // 탭별 데이터 로드
         if (tabName === 'reviews')  loadMyPosts();
         if (tabName === 'orders')   loadMyOrders();
         if (tabName === 'delivery') loadMyDelivery();
@@ -486,7 +484,6 @@
         }).open();
     }
 
-    // ── 내가 쓴 게시글 렌더링 (localStorage 기반) ──
     // ── 내가 쓴 게시글 (Supabase 연동) ──
     async function loadMyPosts() {
         const container = document.getElementById('my-reviews-content');
@@ -556,7 +553,7 @@
         btn.textContent = '...';
         const { error } = await supabaseClient.from('posts').delete().eq('id', postId);
         if (error) { alert('삭제 실패: ' + error.message); btn.textContent = '삭제'; return; }
-        loadMyPosts();  // 목록 새로고침
+        loadMyPosts();
     }
 
     // ── 페이지 초기화 ──
@@ -570,7 +567,6 @@
             return;
         }
 
-        // 프로필 데이터 불러오기
         const { data: profile } = await supabaseClient
             .from('profiles')
             .select('*')
@@ -580,15 +576,12 @@
         if (profile) {
             currentUserName = profile.name || '';
 
-            // 사이드바 사용자 이름
             document.getElementById('sidebar-username').innerText = profile.name || '회원';
 
-            // 프로필 탭
             document.getElementById('displayEmail').value = profile.email || '';
             document.getElementById('updateName').value = profile.name || '';
             document.getElementById('updatePhone').value = profile.phone || '';
 
-            // 주소 탭
             document.getElementById('updatePostcode').value = profile.postcode || '';
             document.getElementById('updateAddr').value = profile.addr || '';
             document.getElementById('updateDetail').value = profile.detail || '';
@@ -610,7 +603,7 @@
 
             if (error) throw error;
 
-            // sessionStorage의 readyplayUser도 이름 업데이트
+            // 헤더의 이름 표시는 Supabase가 아니라 sessionStorage 캐시를 읽으므로 같이 갱신해야 반영된다
             const userData = JSON.parse(sessionStorage.getItem('readyplayUser') || '{}');
             userData.userName = newName;
             sessionStorage.setItem('readyplayUser', JSON.stringify(userData));
@@ -709,7 +702,6 @@
 
     // ── 주문 취소 ──
     async function cancelOrder(orderId, orderNum) {
-        // 취소 전 확인
         if (!confirm(`주문번호 [${orderNum}]\n정말 취소하시겠습니까?\n\n취소된 주문은 되돌릴 수 없습니다.`)) return;
 
         const { data: { session } } = await supabaseClient.auth.getSession();
@@ -719,13 +711,13 @@
             .from('orders')
             .update({ status: '취소' })
             .eq('id', orderId)
-            .eq('user_id', session.user.id);   // 본인 주문만 취소 가능
+            .eq('user_id', session.user.id);   // orderId만으로 지정하면 URL 조작으로 남의 주문도 취소될 수 있어 소유자 검증을 덧붙임
 
         if (error) {
             alert('취소 처리 중 오류가 발생했습니다: ' + error.message);
         } else {
             alert(`주문 [${orderNum}] 이(가) 취소됐습니다.`);
-            loadMyOrders();   // 목록 새로고침
+            loadMyOrders();
         }
     }
 

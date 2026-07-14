@@ -1,17 +1,25 @@
 // =================================================================
 // common.js — Ready Play! 공통 스크립트
-// 모든 페이지에서 공유하는 함수 모음
-// 기준: login.html / signup.html (readyplayUser 방식)
+// 모든 페이지에서 공유하는 함수 모음 (헤더/푸터 로드, 로그인 상태, 위시리스트 등)
+// 세션 상태는 sessionStorage의 'readyplayUser' 키 하나로 통일해서 관리한다.
 // =================================================================
 
 
 // --- [1] Supabase 설정 ---
-// 모든 페이지에서 같은 URL과 KEY를 사용 (login.html 기준)
-const RP_SUPABASE_URL = 'https://hbyhlrodarhkpftybmuw.supabase.co';
-const RP_SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhieWhscm9kYXJoa3BmdHlibXV3Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM1MTMwODcsImV4cCI6MjA5OTA4OTA4N30.V2FRW5jWc6jRp_GvekNiYXkB7bjcMPy7qEMePSTx2qI';
+// URL/KEY를 여기 하드코딩하지 않고 env.js(gitignore 처리됨)에서 주입받는다.
+// 리포에 키가 커밋되는 걸 막기 위함 — 새 환경에서는 env.example.js를 복사해 채울 것.
+if (!window.RP_ENV) {
+    console.error('[ReadyPlay] env.js가 로드되지 않았습니다. env.example.js를 복사해 env.js를 만들어주세요.');
+}
+const RP_SUPABASE_URL = window.RP_ENV?.SUPABASE_URL;
+const RP_SUPABASE_KEY = window.RP_ENV?.SUPABASE_KEY;
 
-// Supabase 클라이언트 싱글톤 (한 번만 초기화해서 재사용)
-// 사용법: const sb = getSupabase();
+/**
+ * Supabase 클라이언트를 반환한다. 페이지당 한 번만 생성해서 재사용하는
+ * 싱글톤 — createClient()를 호출마다 새로 만들면 불필요한 세션/커넥션이
+ * 중복 생성되기 때문에 window._supabase에 캐싱한다.
+ * @returns {SupabaseClient|null} CDN 스크립트가 없으면 null
+ */
 function getSupabase() {
     if (!window._supabase) {
         if (typeof supabase === 'undefined') {
@@ -24,12 +32,15 @@ function getSupabase() {
 }
 
 
-// --- [2] 헤더/푸터 로드 ---
-// 모든 페이지의 DOMContentLoaded에서 이 함수를 호출하면 됨
-// 사용법: document.addEventListener('DOMContentLoaded', loadLayout);
+/**
+ * header.html / footer.html을 fetch로 불러와 각각 #header-container,
+ * #footer-container에 주입한다. 모든 페이지가 동일한 헤더/푸터 마크업을
+ * 반복해서 들고 있지 않도록 공통 컴포넌트처럼 재사용하기 위함.
+ * 페이지의 DOMContentLoaded에서 호출한다: document.addEventListener('DOMContentLoaded', loadLayout);
+ */
 async function loadLayout() {
     try {
-        // 헤더와 푸터를 동시에 요청 (더 빠름)
+        // 헤더/푸터를 순차 fetch가 아닌 Promise.all로 동시에 요청해 로딩 시간을 절반으로 줄인다.
         const [headerRes, footerRes] = await Promise.all([
             fetch('header.html'),
             fetch('footer.html')
@@ -40,7 +51,8 @@ async function loadLayout() {
 
         if (headerContainer) {
             headerContainer.innerHTML = await headerRes.text();
-            // header.html 안에 있는 <script> 태그를 다시 실행
+            // innerHTML로 삽입된 <script>는 브라우저가 자동 실행하지 않으므로,
+            // 태그를 새로 만들어 다시 appendChild 해줘야 안의 코드가 동작한다.
             headerContainer.querySelectorAll('script').forEach(old => {
                 const s = document.createElement('script');
                 s.text = old.text;
@@ -50,7 +62,7 @@ async function loadLayout() {
 
         if (footerContainer) {
             footerContainer.innerHTML = await footerRes.text();
-            // footer.html 안에 있는 <script> 태그를 다시 실행
+            // 위 header와 동일한 이유로 footer의 <script>도 수동 재실행이 필요하다.
             footerContainer.querySelectorAll('script').forEach(old => {
                 const s = document.createElement('script');
                 s.text = old.text;
@@ -58,7 +70,8 @@ async function loadLayout() {
             });
         }
 
-        // 레이아웃 로드 완료 후 로그인 상태 반영
+        // 로그인/로그아웃 버튼은 header.html 안에 있으므로, 헤더가 실제로
+        // DOM에 삽입된 이후에 호출해야 요소를 찾을 수 있다.
         updateLoginStatus();
 
     } catch (e) {
@@ -67,9 +80,11 @@ async function loadLayout() {
 }
 
 
-// --- [3] 로그인 상태 업데이트 ---
-// login.html 기준: sessionStorage의 'readyplayUser' JSON 객체를 읽어옴
-// { isLoggedIn: true, userName: "홍길동", userRole: "member" }
+/**
+ * 헤더의 로그인/로그아웃 버튼(#top-auth-btn, #side-auth-btn)을 현재 세션에
+ * 맞게 갱신한다. sessionStorage의 'readyplayUser'에는
+ * { isLoggedIn, userName, userRole } 형태의 JSON이 저장되어 있다고 가정한다.
+ */
 function updateLoginStatus() {
     const topAuthBtn  = document.getElementById('top-auth-btn');
     const sideAuthBtn = document.getElementById('side-auth-btn');
@@ -79,7 +94,6 @@ function updateLoginStatus() {
         try {
             const userData = JSON.parse(sessionData);
             if (userData.isLoggedIn === true) {
-                // 로그인 상태 → 버튼을 LOGOUT으로 변경
                 if (topAuthBtn) {
                     topAuthBtn.innerText = 'LOGOUT';
                     topAuthBtn.onclick   = handleLogout;
@@ -95,7 +109,6 @@ function updateLoginStatus() {
         }
     }
 
-    // 비로그인 상태 → 버튼을 LOGIN으로 유지
     if (topAuthBtn) {
         topAuthBtn.innerText = 'LOGIN';
         topAuthBtn.onclick   = () => location.href = 'login.html';
@@ -107,14 +120,16 @@ function updateLoginStatus() {
 }
 
 
-// --- [4] 로그아웃 ---
+/**
+ * 로그아웃 처리. sessionStorage만 지우면 Supabase 쪽 인증 세션은 남아있게
+ * 되므로, auth.signOut()도 함께 호출해 두 상태를 동기화한다.
+ */
 async function handleLogout() {
     if (confirm('로그아웃 하시겠습니까?')) {
-        // Supabase 세션도 함께 종료
         try {
             const sb = getSupabase();
             if (sb) await sb.auth.signOut();
-        } catch (e) { /* Supabase 없는 페이지에서는 그냥 넘어감 */ }
+        } catch (e) { /* Supabase가 초기화되지 않은 페이지도 있으므로 실패해도 무시하고 진행 */ }
 
         sessionStorage.removeItem('readyplayUser');
         alert('로그아웃 되었습니다.');
@@ -123,8 +138,10 @@ async function handleLogout() {
 }
 
 
-// --- [5] 현재 로그인한 사용자 정보 가져오기 ---
-// 사용법: const user = getCurrentUser();  → null이면 비로그인
+/**
+ * 현재 로그인한 사용자 정보를 반환한다.
+ * @returns {{isLoggedIn: boolean, userName: string, userRole: string}|null} 비로그인이면 null
+ */
 function getCurrentUser() {
     const sessionData = sessionStorage.getItem('readyplayUser');
     if (sessionData) {
@@ -134,7 +151,9 @@ function getCurrentUser() {
 }
 
 
-// --- [6] 마이페이지 이동 (로그인 필수 체크) ---
+/**
+ * 마이페이지로 이동한다. 로그인 안 된 상태면 로그인 페이지로 대신 보낸다.
+ */
 function checkLoginAndMove() {
     const user = getCurrentUser();
     if (user && user.isLoggedIn === true) {
@@ -146,9 +165,11 @@ function checkLoginAndMove() {
 }
 
 
-// --- [7] 관리자 페이지 이동 (관리자 권한 체크) ---
-// 나중에 admin.html 만들 때 헤더 버튼에 연결하면 됨
-// userRole === 'admin' 인 계정만 접근 허용
+/**
+ * 관리자 페이지(admin.html)로 이동한다. userRole이 'admin'인 계정만
+ * 통과시킨다 — 실제 접근 제어는 이 프론트엔드 체크뿐이므로, Supabase
+ * 쪽에서 role을 직접 바꾸면 우회 가능하다는 점은 감안해야 한다.
+ */
 function checkAdminAndMove() {
     const user = getCurrentUser();
     if (user && user.isLoggedIn === true) {
@@ -164,8 +185,9 @@ function checkAdminAndMove() {
 }
 
 
-// --- [8] 사이드바 메뉴 토글 ---
-// header.html의 ☰ 버튼 onclick="toggleMenu()" 에 연결됨
+/**
+ * 사이드바 메뉴를 열고 닫는다. header.html의 ☰ 버튼(onclick="toggleMenu()")에서 호출됨.
+ */
 function toggleMenu() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('overlay');
@@ -176,8 +198,10 @@ function toggleMenu() {
 }
 
 
-// --- [9] 사이드바 서브메뉴 토글 ---
-// header.html의 STORE, COMMUNITY 메뉴 onclick="toggleSubmenu('id')" 에 연결됨
+/**
+ * 사이드바 내 서브메뉴(STORE, COMMUNITY 등)를 펼치고 접는다.
+ * header.html에서 onclick="toggleSubmenu('id')"로 호출됨.
+ */
 function toggleSubmenu(id) {
     const sub = document.getElementById(id);
     if (!sub) return;
@@ -187,9 +211,10 @@ function toggleSubmenu(id) {
 }
 
 
-// --- [10] 찜하기 (위시리스트 추가) ---
-// store.html 방식 기준으로 통일
-// 사용법: addToWishlist('축구 스타터 키트', '110,000원', 'SOCCER', 'soccer_store.png')
+/**
+ * 상품을 위시리스트(sessionStorage 'Wishlist')에 담는다.
+ * @example addToWishlist('축구 스타터 키트', '110,000원', 'SOCCER', 'soccer_store.png')
+ */
 function addToWishlist(name, price, category, imgSrc) {
     let wishlist = JSON.parse(sessionStorage.getItem('Wishlist')) || [];
 
@@ -202,7 +227,6 @@ function addToWishlist(name, price, category, imgSrc) {
         date:    new Date().toLocaleDateString()
     };
 
-    // 이미 담긴 상품인지 확인
     const isExist = wishlist.some(item => item.name === name);
     if (isExist) {
         if (!confirm('이미 찜 목록에 있는 상품입니다. 하나 더 추가하시겠습니까?')) return;

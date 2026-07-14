@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ready Play! - Cart</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
-        /* [기존 스타일 유지 및 레이아웃 조정] */
         :root {
             --black: #000000;
             --white: #ffffff;
@@ -31,8 +31,7 @@
         
         .cart-item { display: flex; background: #fff; border: 4px solid #000; padding: 20px; gap: 20px; position: relative; box-shadow: 8px 8px 0px rgba(0,0,0,1); align-items: center; }
         
-        /* 이미지 박스 수정: 이미지가 꽉 차도록 설정 */
-        .item-img-box { 
+        .item-img-box {
             width: 150px; 
             height: 150px; 
             background: #fff; 
@@ -45,7 +44,7 @@
         .item-img-box img {
             width: 100%;
             height: 100%;
-            object-fit: contain; /* 이미지 비율 유지 */
+            object-fit: contain;
         }
 
         .item-info { flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 10px; }
@@ -140,7 +139,6 @@
                     itemDiv.className = 'cart-item';
                     if (item.checked === undefined) item.checked = true;
 
-                    // 이미지 처리: 저장된 경로가 있으면 사용, 없으면 기본 텍스트 출력
                     const displayImg = item.img ? `<img src="${item.img}" alt="상품이미지">` : 'ITEM';
 
                     itemDiv.innerHTML = `
@@ -222,8 +220,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            loadLayout();       // common.js: 헤더+푸터 로드 + 로그인 상태 반영
-            renderMainCart();   // 장바구니 목록 렌더링
+            loadLayout();
+            renderMainCart();
         });
     </script>
 </body>

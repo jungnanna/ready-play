@@ -160,16 +160,15 @@
     </div>
 
     <script>
-        // 창고 이름만 바뀝니다!
-        let cart = JSON.parse(sessionStorage.getItem('Cart')) || []; 
+        // cart.html / kit-detail.html 등 실제 페이지와 동일한 'Cart' 키를 사용한다
+        let cart = JSON.parse(sessionStorage.getItem('Cart')) || [];
 
         function saveAndRender() {
-            // 여기도 sessionStorage로 변경
-            sessionStorage.setItem('Cart', JSON.stringify(cart)); 
+            sessionStorage.setItem('Cart', JSON.stringify(cart));
             renderCart();
         }
 
-        // 상품 추가 기능 (나중에 쇼핑몰 페이지와 연동 시 사용)
+        // 실제 상품 데이터 연동 전 테스트용으로 더미 아이템을 하나 추가하는 함수
         function addItem() {
             const container = document.getElementById('cartItems');
             const emptyMsg = container.querySelector('.empty-msg');
@@ -196,7 +195,6 @@
             updateTotal();
         }
 
-        // 수량 조절
         function changeQty(btn, delta) {
             const span = btn.parentElement.querySelector('.qty-num');
             let qty = parseInt(span.innerText) + delta;
@@ -205,19 +203,16 @@
             updateTotal();
         }
 
-        // 선택 삭제
         function deleteChecked() {
             document.querySelectorAll('.item-chk:checked').forEach(chk => chk.closest('.item').remove());
             updateTotal();
         }
 
-        // 전체 선택
         function toggleAll(master) {
             document.querySelectorAll('.item-chk').forEach(chk => chk.checked = master.checked);
             updateTotal();
         }
 
-        // 금액 업데이트
         function updateTotal() {
             const items = document.querySelectorAll('.item');
             const container = document.getElementById('cartItems');

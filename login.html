@@ -5,10 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>READY PLAY - LOGIN</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
-        /* 기존 스타일 유지 (수정 없음) */
         body { margin: 0; background-color: #ffffff; font-family: 'Pretendard', sans-serif; padding-top: 100px; }
         .main-wrapper { display: flex; justify-content: center; align-items: center; min-height: calc(100vh - 150px); padding: 50px 20px; box-sizing: border-box; }
         .login-container { width: 100%; max-width: 400px; background-color: #ffffff; padding: 40px; border: 5px solid #000; box-shadow: 15px 15px 0px #000; text-align: center; }
@@ -200,7 +200,7 @@
         msgEl.textContent = '';
 
         try {
-            // 현재 페이지 기준으로 reset-password.html 경로 자동 계산
+            // 도메인을 하드코딩하지 않고 현재 URL에서 계산해야 로컬/배포 환경 모두에서 동작한다
             const origin    = window.location.href.replace(/\/[^/]*$/, '');
             const redirectTo = origin + '/reset-password.html';
 

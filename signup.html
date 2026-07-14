@@ -6,6 +6,7 @@
     <title>READY PLAY! - JOIN US</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://t1.daumcdn.net/mapjsapi/bundle/postcode/prod/postcode.v2.js"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
@@ -76,7 +77,6 @@
     // common.js의 getSupabase() 사용 (URL/KEY 중복 제거)
     const supabaseClient = getSupabase();
 
-    // 주소 검색 창 (Daum API)
     function execDaumPostcode() {
         new daum.Postcode({
             oncomplete: function(data) {
@@ -87,12 +87,10 @@
         }).open();
     }
 
-    // 전체 동의 체크 로직
     document.getElementById('all')?.addEventListener('change', (e) => {
         document.querySelectorAll('.term-check').forEach(cb => cb.checked = e.target.checked);
     });
 
-    // 회원가입 제출
     document.getElementById('signupForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         const email = document.getElementById('userEmail').value;
@@ -118,7 +116,9 @@
             if (authError) throw authError;
 
             if (authData.user) {
-                // [주의] DB에 addr, phone 컬럼이 없으면 여기서 에러 발생 (SQL 쿼리 실행 필수)
+                // profiles 테이블에 addr/phone 컬럼이 없으면 여기서 insert가 실패한다 —
+                // auth.users에는 이미 계정이 생성된 뒤이므로, 스키마를 먼저 맞춰두지 않으면
+                // "가입은 됐는데 프로필 저장은 실패"하는 상태가 될 수 있다.
                 const { error: dbError } = await supabaseClient
                     .from('profiles')
                     .insert([{ 

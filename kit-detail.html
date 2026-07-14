@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>READY PLAY! - KIT BUILDER</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="env.js"></script>
     <script src="common.js"></script>
     <link rel="stylesheet" href="common.css">
     <style>
@@ -463,7 +464,7 @@ let itemState  = {};    // { shoes: true, watch: true, ... }  true = 포함됨
 document.addEventListener('DOMContentLoaded', async () => {
     await loadLayout();
 
-    // URL에서 ?category=RUNNING 읽기
+    // 예: kit-detail.html?category=RUNNING
     const params   = new URLSearchParams(window.location.search);
     const category = (params.get('category') || '').toUpperCase();
 
@@ -475,13 +476,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     kitConfig = KIT_CONFIG[category];
 
-    // 모든 아이템을 처음에는 "포함" 상태로 초기화
+    // 기본값은 전 구성품 포함 — 사용자가 개별적으로 제외(toggleItem)하는 방식
     kitConfig.items.forEach(it => { itemState[it.id] = true; });
 
-    // 페이지 제목 업데이트
     document.title = `READY PLAY! - ${kitConfig.title}`;
-
-    // 렌더링
     renderKitPage();
 });
 
@@ -612,17 +610,14 @@ function renderItemList() {
 //  아이템 토글 (포함 ↔ 제거)
 // ────────────────────────────────────────────────────────
 function toggleItem(itemId) {
-    // 현재 포함된 아이템 수 확인
     const includedCount = Object.values(itemState).filter(v => v).length;
     const willBeRemoved = itemState[itemId] === true;
 
-    // 최소 개수 미만으로 줄이려 할 때 차단
     if (willBeRemoved && includedCount <= kitConfig.minItems) {
         alert(`최소 ${kitConfig.minItems}개 이상의 구성품을 선택해야 합니다!`);
         return;
     }
 
-    // 상태 변경
     itemState[itemId] = !itemState[itemId];
     const isIncluded = itemState[itemId];
 
@@ -680,7 +675,7 @@ function doWishlist() {
         return;
     }
     const total = calcTotal();
-    // common.js의 addToWishlist() 호출
+    // addToWishlist는 이 파일이 아니라 common.js에 정의된 공용 함수
     addToWishlist(
         kitConfig.title,
         total.toLocaleString() + '원',
@@ -699,7 +694,6 @@ function doAddToCart() {
         return;
     }
 
-    // 사이즈 미선택 항목 체크
     const noSize = selected.find(it => it.sizes && it.sizes.length > 0 && !it.selectedSize);
     if (noSize) {
         alert(`"${noSize.name}"의 사이즈를 선택해 주세요!`);
@@ -709,7 +703,7 @@ function doAddToCart() {
     const total = calcTotal();
     const options = selected.map(it => it.name + (it.selectedSize ? `(${it.selectedSize})` : '')).join(', ');
 
-    // sessionStorage에 저장 (cart.html, orderform.html과 공유)
+    // 'OrderTemp' 키는 cart.html / orderform.html에서도 그대로 읽으므로 이름을 바꾸면 안 됨
     let cart = JSON.parse(sessionStorage.getItem('OrderTemp')) || [];
     cart.push({
         name:  kitConfig.title,
@@ -743,7 +737,7 @@ function doDirectOrder() {
     const total = calcTotal();
     const options = selected.map(it => it.name + (it.selectedSize ? `(${it.selectedSize})` : '')).join(', ');
 
-    // 장바구니에 담은 뒤 주문 페이지로 이동
+    // 별도의 즉시결제 플로우 없이, 장바구니와 동일하게 OrderTemp에 담은 뒤 주문서로 보낸다
     let cart = JSON.parse(sessionStorage.getItem('OrderTemp')) || [];
     cart.push({
         name:  kitConfig.title,
