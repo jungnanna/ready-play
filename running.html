@@ -41,7 +41,7 @@
             padding: 0; 
             box-sizing: border-box; 
             background-color: #f0f0f0; 
-            background-image: url('system insert.png'); 
+            background-image: url('img/system insert.png'); 
             background-size: 100% 100%; 
             background-repeat: no-repeat; 
             background-position: center;
@@ -144,11 +144,11 @@
 <div class="container">
     <div class="top">
         <div class="product-img" id="captureArea">
-            <img src="running_shoes.png" id="shoes" alt="러닝화">
-            <img src="smart_watch.png" id="watch" alt="스마트 워치">
-            <img src="running_belt.png" id="belt" alt="러닝 벨트">
-            <img src="running hat.png" id="socks" alt="러닝 모자">
-            <img src="apparel.png" id="uniform" alt="의류">
+            <img src="img/running_shoes.png" id="shoes" alt="러닝화">
+            <img src="img/smart_watch.png" id="watch" alt="스마트 워치">
+            <img src="img/running_belt.png" id="belt" alt="러닝 벨트">
+            <img src="img/running hat.png" id="socks" alt="러닝 모자">
+            <img src="img/apparel.png" id="uniform" alt="의류">
         </div>
        
         <div class="product-info">
@@ -203,8 +203,8 @@
     </div>
 
     <div class="detail-grid">
-        <div class="box" id="size-guide"><h3>러닝화 사이즈 가이드</h3><img src="shoes_size.png"></div>
-        <div class="box"><h3>의류 실측 사이즈</h3><img src="uniform_size.png"></div>
+        <div class="box" id="size-guide"><h3>러닝화 사이즈 가이드</h3><img src="img/shoes_size.png"></div>
+        <div class="box"><h3>의류 실측 사이즈</h3><img src="img/uniform_size.png"></div>
         
         <div class="box large" id="product-detail">
             <h3>디테일 뷰</h3>
@@ -311,7 +311,7 @@
             name: "러닝 스타터 키트", 
             price: kitPrice, 
             qty: 1, 
-            img: "running_store.png",
+            img: "img/running_store.png",
             options: selectedOptions.join(", ") 
         });
 
@@ -337,7 +337,7 @@
             id: "wish_" + Date.now(),
             name: "러닝 스타터 키트",
             price: kitPrice,
-            img: "running_store.png",
+            img: "img/running_store.png",
             options: selectedOptions.join(", "),
             date: new Date().toLocaleDateString()
         };
@@ -416,7 +416,7 @@ function directOrder() {
         name: "러닝 스타터 키트 (단품 주문)",
         price: kitPrice,
         qty: 1,
-        img: "running_store.png",
+        img: "img/running_store.png",
         options: selectedOptions.join(", "),
         type: "DIRECT_ORDER" // orderform.html이 장바구니 주문과 구분해서 처리할 수 있도록 붙이는 플래그
     };
