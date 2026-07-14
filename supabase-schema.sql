@@ -166,6 +166,35 @@ CREATE POLICY "profiles delete admin only" ON public.profiles
     FOR DELETE TO authenticated
     USING (public.is_admin());
 
+-- profiles의 "본인 행 UPDATE/INSERT 허용" 정책은 행 단위 체크만 하기 때문에,
+-- 그 자체로는 본인이 role을 'admin'으로 바꿔서 셀프 승격하는 것까지 막아주지
+-- 않는다. 컬럼 단위 제한은 RLS만으로는 안 되므로 트리거로 role 필드를 보호한다.
+CREATE OR REPLACE FUNCTION public.protect_profile_role()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        IF NOT public.is_admin() THEN
+            NEW.role := 'member';
+        END IF;
+    ELSIF TG_OP = 'UPDATE' THEN
+        IF NEW.role IS DISTINCT FROM OLD.role AND NOT public.is_admin() THEN
+            NEW.role := OLD.role;
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS profiles_protect_role ON public.profiles;
+CREATE TRIGGER profiles_protect_role
+    BEFORE INSERT OR UPDATE ON public.profiles
+    FOR EACH ROW
+    EXECUTE FUNCTION public.protect_profile_role();
+
 -- ── products: 목록/상세는 누구나, 등록/삭제는 관리자만 ──
 GRANT SELECT ON public.products TO anon, authenticated;
 GRANT INSERT, UPDATE, DELETE ON public.products TO authenticated;
@@ -198,6 +227,42 @@ DROP POLICY IF EXISTS "orders update own or admin" ON public.orders;
 CREATE POLICY "orders update own or admin" ON public.orders
     FOR UPDATE TO anon, authenticated
     USING (user_id = auth.uid() OR public.is_admin());
+
+-- 위와 같은 이유로, "본인 주문 UPDATE 허용" 정책만으로는 취소(status만 바꾸는 것)
+-- 외에 가격/상품구성 등 다른 필드까지 마음대로 바꾸는 것도 막지 못한다. 관리자가
+-- 아니면 status를 '취소'로 바꾸는 것 외의 모든 변경은 트리거에서 원래 값으로 되돌린다.
+CREATE OR REPLACE FUNCTION public.protect_order_fields()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+BEGIN
+    IF NOT public.is_admin() THEN
+        IF NEW.status IS DISTINCT FROM OLD.status AND NEW.status != '취소' THEN
+            RAISE EXCEPTION 'Only cancellation is allowed for non-admin order updates';
+        END IF;
+        NEW.user_id      := OLD.user_id;
+        NEW.user_name    := OLD.user_name;
+        NEW.email        := OLD.email;
+        NEW.phone        := OLD.phone;
+        NEW.postcode     := OLD.postcode;
+        NEW.addr         := OLD.addr;
+        NEW.detail       := OLD.detail;
+        NEW.items        := OLD.items;
+        NEW.total_price  := OLD.total_price;
+        NEW.pay_method   := OLD.pay_method;
+        NEW.order_number := OLD.order_number;
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS orders_protect_fields ON public.orders;
+CREATE TRIGGER orders_protect_fields
+    BEFORE UPDATE ON public.orders
+    FOR EACH ROW
+    EXECUTE FUNCTION public.protect_order_fields();
 
 -- ── contact_logs: 문의는 누구나 등록, 조회는 관리자만 ──
 GRANT INSERT ON public.contact_logs TO anon, authenticated;
