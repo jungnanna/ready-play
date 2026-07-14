@@ -371,8 +371,10 @@
             }
         }
 
+        // posts 테이블에 대한 직접 UPDATE 권한은 글쓴이/관리자로 제한돼 있어서(RLS),
+        // 비회원을 포함한 모든 방문자가 조회수를 올릴 수 있도록 전용 RPC를 쓴다.
         // 조회수 갱신은 핵심 기능이 아니므로 실패해도 무시하고 흐름을 막지 않는다 (fire-and-forget)
-        sb.from('posts').update({ view_count: (post.view_count || 0) + 1 }).eq('id', id).then(() => {});
+        sb.rpc('increment_view_count', { post_id: id }).then(() => {});
 
         const isAuthor = currentUser && currentUser.id === post.user_id;
         const isAdmin  = currentProfile && currentProfile.role === 'admin';

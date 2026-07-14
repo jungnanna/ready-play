@@ -100,29 +100,174 @@ CREATE TABLE IF NOT EXISTS public.post_attachments (
 
 
 -- =====================================================
--- 권한 설정
--- [보안 주의] 기존 프로젝트와 동일하게 RLS를 비활성화하고
--- anon/authenticated에게 전체 권한을 부여합니다. 이는 관리자
--- 권한 체크를 전적으로 프론트엔드(admin.html)에서만 하고 있다는
--- 뜻이라 실제 서비스 운영 시에는 취약합니다 (누구나 API로
--- products/orders/profiles를 직접 조작 가능). 가능하면 이후
--- RLS 정책으로 교체하는 것을 권장합니다.
+-- 권한 설정 (RLS)
+-- anon key는 브라우저에 그대로 노출되는 공개 키라서, 실제 접근
+-- 제어는 이 RLS 정책이 담당한다. 관리자 여부는 profiles.role을
+-- 보고 판단하는데, profiles 테이블 자신의 정책 안에서 profiles를
+-- 다시 조회하면 재귀 문제가 생기므로 SECURITY DEFINER 함수
+-- (is_admin)로 우회해서 확인한다.
 -- =====================================================
-ALTER TABLE public.profiles          DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.products          DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.orders            DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.contact_logs      DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.posts             DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.post_comments     DISABLE ROW LEVEL SECURITY;
-ALTER TABLE public.post_attachments  DISABLE ROW LEVEL SECURITY;
 
-GRANT ALL ON public.profiles          TO anon, authenticated;
-GRANT ALL ON public.products          TO anon, authenticated;
-GRANT ALL ON public.orders            TO anon, authenticated;
-GRANT ALL ON public.contact_logs      TO anon, authenticated;
-GRANT ALL ON public.posts             TO anon, authenticated;
-GRANT ALL ON public.post_comments     TO anon, authenticated;
-GRANT ALL ON public.post_attachments  TO anon, authenticated;
+CREATE OR REPLACE FUNCTION public.is_admin()
+RETURNS boolean
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+STABLE
+AS $$
+    SELECT EXISTS (
+        SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'admin'
+    );
+$$;
+
+-- 게시글 조회수 증가 전용 함수.
+-- posts UPDATE 권한을 글쓴이/관리자로 제한하면 조회수 증가(비회원 포함,
+-- 모든 방문자가 트리거)도 막히므로, view_count 한 컬럼만 올려주는
+-- 이 함수만 별도로 anon/authenticated에게 실행 권한을 준다.
+CREATE OR REPLACE FUNCTION public.increment_view_count(post_id UUID)
+RETURNS void
+LANGUAGE sql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+    UPDATE public.posts SET view_count = COALESCE(view_count, 0) + 1 WHERE id = post_id;
+$$;
+GRANT EXECUTE ON FUNCTION public.increment_view_count(UUID) TO anon, authenticated;
+
+
+ALTER TABLE public.profiles          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products          ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.orders            ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.contact_logs      ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.posts             ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.post_comments     ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.post_attachments  ENABLE ROW LEVEL SECURITY;
+
+-- ── profiles: 본인 행만 CRUD, 관리자는 전체 조회/수정/삭제 ──
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.profiles TO authenticated;
+
+DROP POLICY IF EXISTS "profiles select own or admin" ON public.profiles;
+CREATE POLICY "profiles select own or admin" ON public.profiles
+    FOR SELECT TO authenticated
+    USING (id = auth.uid() OR public.is_admin());
+
+DROP POLICY IF EXISTS "profiles insert own" ON public.profiles;
+CREATE POLICY "profiles insert own" ON public.profiles
+    FOR INSERT TO authenticated
+    WITH CHECK (id = auth.uid());
+
+DROP POLICY IF EXISTS "profiles update own or admin" ON public.profiles;
+CREATE POLICY "profiles update own or admin" ON public.profiles
+    FOR UPDATE TO authenticated
+    USING (id = auth.uid() OR public.is_admin());
+
+DROP POLICY IF EXISTS "profiles delete admin only" ON public.profiles;
+CREATE POLICY "profiles delete admin only" ON public.profiles
+    FOR DELETE TO authenticated
+    USING (public.is_admin());
+
+-- ── products: 목록/상세는 누구나, 등록/삭제는 관리자만 ──
+GRANT SELECT ON public.products TO anon, authenticated;
+GRANT INSERT, UPDATE, DELETE ON public.products TO authenticated;
+
+DROP POLICY IF EXISTS "products select all" ON public.products;
+CREATE POLICY "products select all" ON public.products
+    FOR SELECT TO anon, authenticated
+    USING (true);
+
+DROP POLICY IF EXISTS "products write admin only" ON public.products;
+CREATE POLICY "products write admin only" ON public.products
+    FOR ALL TO authenticated
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
+
+-- ── orders: 본인 주문만(비회원 주문은 user_id가 NULL), 관리자는 전체 ──
+GRANT SELECT, INSERT, UPDATE ON public.orders TO anon, authenticated;
+
+DROP POLICY IF EXISTS "orders select own or admin" ON public.orders;
+CREATE POLICY "orders select own or admin" ON public.orders
+    FOR SELECT TO anon, authenticated
+    USING (user_id = auth.uid() OR public.is_admin());
+
+DROP POLICY IF EXISTS "orders insert own or guest" ON public.orders;
+CREATE POLICY "orders insert own or guest" ON public.orders
+    FOR INSERT TO anon, authenticated
+    WITH CHECK (user_id = auth.uid() OR user_id IS NULL);
+
+DROP POLICY IF EXISTS "orders update own or admin" ON public.orders;
+CREATE POLICY "orders update own or admin" ON public.orders
+    FOR UPDATE TO anon, authenticated
+    USING (user_id = auth.uid() OR public.is_admin());
+
+-- ── contact_logs: 문의는 누구나 등록, 조회는 관리자만 ──
+GRANT INSERT ON public.contact_logs TO anon, authenticated;
+GRANT SELECT ON public.contact_logs TO authenticated;
+
+DROP POLICY IF EXISTS "contact_logs insert all" ON public.contact_logs;
+CREATE POLICY "contact_logs insert all" ON public.contact_logs
+    FOR INSERT TO anon, authenticated
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "contact_logs select admin only" ON public.contact_logs;
+CREATE POLICY "contact_logs select admin only" ON public.contact_logs
+    FOR SELECT TO authenticated
+    USING (public.is_admin());
+
+-- ── posts: 조회는 누구나(비밀글 잠금은 프론트에서 처리하는 기존 방식 유지),
+--    작성은 로그인 회원 본인 글만, 삭제는 글쓴이/관리자. 조회수는 위의
+--    increment_view_count() 함수로만 올리므로 UPDATE 권한은 주지 않는다.
+GRANT SELECT, INSERT, DELETE ON public.posts TO anon, authenticated;
+
+DROP POLICY IF EXISTS "posts select all" ON public.posts;
+CREATE POLICY "posts select all" ON public.posts
+    FOR SELECT TO anon, authenticated
+    USING (true);
+
+DROP POLICY IF EXISTS "posts insert own" ON public.posts;
+CREATE POLICY "posts insert own" ON public.posts
+    FOR INSERT TO authenticated
+    WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "posts delete own or admin" ON public.posts;
+CREATE POLICY "posts delete own or admin" ON public.posts
+    FOR DELETE TO anon, authenticated
+    USING (user_id = auth.uid() OR public.is_admin());
+
+-- ── post_comments: 조회는 누구나, 작성은 로그인 회원 본인, 삭제는 작성자/관리자 ──
+GRANT SELECT, INSERT, DELETE ON public.post_comments TO anon, authenticated;
+
+DROP POLICY IF EXISTS "post_comments select all" ON public.post_comments;
+CREATE POLICY "post_comments select all" ON public.post_comments
+    FOR SELECT TO anon, authenticated
+    USING (true);
+
+DROP POLICY IF EXISTS "post_comments insert own" ON public.post_comments;
+CREATE POLICY "post_comments insert own" ON public.post_comments
+    FOR INSERT TO authenticated
+    WITH CHECK (user_id = auth.uid());
+
+DROP POLICY IF EXISTS "post_comments delete own or admin" ON public.post_comments;
+CREATE POLICY "post_comments delete own or admin" ON public.post_comments
+    FOR DELETE TO anon, authenticated
+    USING (user_id = auth.uid() OR public.is_admin());
+
+-- ── post_attachments: 조회는 누구나, 첨부는 해당 글의 작성자만 ──
+GRANT SELECT, INSERT ON public.post_attachments TO anon, authenticated;
+
+DROP POLICY IF EXISTS "post_attachments select all" ON public.post_attachments;
+CREATE POLICY "post_attachments select all" ON public.post_attachments
+    FOR SELECT TO anon, authenticated
+    USING (true);
+
+DROP POLICY IF EXISTS "post_attachments insert own post" ON public.post_attachments;
+CREATE POLICY "post_attachments insert own post" ON public.post_attachments
+    FOR INSERT TO authenticated
+    WITH CHECK (
+        EXISTS (
+            SELECT 1 FROM public.posts
+            WHERE posts.id = post_attachments.post_id AND posts.user_id = auth.uid()
+        )
+    );
 
 
 -- =====================================================
@@ -133,12 +278,15 @@ INSERT INTO storage.buckets (id, name, public)
 VALUES ('post-files', 'post-files', true)
 ON CONFLICT (id) DO NOTHING;
 
+DROP POLICY IF EXISTS "post-files public read" ON storage.objects;
 CREATE POLICY "post-files public read" ON storage.objects
     FOR SELECT USING (bucket_id = 'post-files');
 
+DROP POLICY IF EXISTS "post-files auth upload" ON storage.objects;
 CREATE POLICY "post-files auth upload" ON storage.objects
     FOR INSERT WITH CHECK (bucket_id = 'post-files' AND auth.role() = 'authenticated');
 
+DROP POLICY IF EXISTS "post-files auth delete" ON storage.objects;
 CREATE POLICY "post-files auth delete" ON storage.objects
     FOR DELETE USING (bucket_id = 'post-files' AND auth.uid() = owner);
 
